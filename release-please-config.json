@@ -2,7 +2,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "starter_app",
+      "package-name": "sarahandfrankwedding",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false
     }

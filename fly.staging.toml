@@ -2,7 +2,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'starter_app-staging'
+app = 'sarahandfrankwedding-staging'
 primary_region = 'ord'
 console_command = '/code/manage.py shell'
 

@@ -1,8 +1,8 @@
-# starter_app
+# sarahandfrankwedding
 
 ## Background
 
-starter_app is...
+sarahandfrankwedding is...
 
 ## Requirements
 
@@ -22,8 +22,8 @@ Run `make help` to see all available commands.
 
 ## First Deploys
 
-1. Create a Fly.io app for staging `fly apps create --name staging-<app-id> -o <staging-org-id>` 
-2. Create a Fly.io app for production `fly apps create --name <app-id> -o <org-id>` 
+1. Create a Fly.io app for staging `fly apps create --name staging-<app-id> -o <staging-org-id>`
+2. Create a Fly.io app for production `fly apps create --name <app-id> -o <org-id>`
 3. Set appropriate secrets in the Fly.io console
 
 ## Database
@@ -36,9 +36,9 @@ On Fly.io, create a Postgres cluster and attach it to each app (attaching sets t
 `DATABASE_URL` secret):
 
 ```sh
-fly postgres create --name starter_app-db
-fly postgres attach starter_app-db --app starter_app
-fly postgres attach starter_app-db --app starter_app-staging  # or a separate staging cluster
+fly postgres create --name sarahandfrankwedding-db
+fly postgres attach sarahandfrankwedding-db --app sarahandfrankwedding
+fly postgres attach sarahandfrankwedding-db --app sarahandfrankwedding-staging  # or a separate staging cluster
 ```
 
 Any other Postgres provider works too — just set the `DATABASE_URL` secret yourself

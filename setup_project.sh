@@ -4,7 +4,7 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────
 # setup_project.sh — Bootstrap a new project from this template.
 #
-# Replaces all template placeholders and renames the starter_app/ directory.
+# Replaces all template placeholders and renames the sarahandfrankwedding/ directory.
 # Run once, then delete this script.
 # ──────────────────────────────────────────────────────────────
 
@@ -56,8 +56,8 @@ if [[ ! "$APP_NAME" =~ ^[a-z][a-z0-9_]*$ ]]; then
     exit 1
 fi
 
-if [[ ! -d "starter_app" ]]; then
-    echo -e "${RED}Error: starter_app/ directory not found. Has this script already been run?${NC}"
+if [[ ! -d "sarahandfrankwedding" ]]; then
+    echo -e "${RED}Error: sarahandfrankwedding/ directory not found. Has this script already been run?${NC}"
     exit 1
 fi
 
@@ -79,9 +79,9 @@ fi
 
 echo ""
 
-# 1. Rename the starter_app/ directory
-echo -e "Renaming ${CYAN}starter_app/${NC} → ${GREEN}${APP_NAME}/${NC}"
-mv "starter_app" "$APP_NAME"
+# 1. Rename the sarahandfrankwedding/ directory
+echo -e "Renaming ${CYAN}sarahandfrankwedding/${NC} → ${GREEN}${APP_NAME}/${NC}"
+mv "sarahandfrankwedding" "$APP_NAME"
 
 # 2. Replace placeholders in all text files (skip .git, .venv, __pycache__, binary files)
 replace_in_files() {
@@ -100,20 +100,20 @@ replace_in_files() {
     done
 }
 
-echo -e "Replacing ${CYAN}starter_app${NC} → ${GREEN}${APP_NAME}${NC}"
-replace_in_files 'starter_app' "$APP_NAME"
+echo -e "Replacing ${CYAN}sarahandfrankwedding${NC} → ${GREEN}${APP_NAME}${NC}"
+replace_in_files 'sarahandfrankwedding' "$APP_NAME"
 
-echo -e "Replacing ${CYAN}<description>${NC} → ${GREEN}${DESCRIPTION}${NC}"
-replace_in_files '<description>' "$DESCRIPTION"
+echo -e "Replacing ${CYAN}Public-facing site and management platform for our wedding.${NC} → ${GREEN}${DESCRIPTION}${NC}"
+replace_in_files 'Public-facing site and management platform for our wedding.' "$DESCRIPTION"
 
-echo -e "Replacing ${CYAN}<client legal name>${NC} → ${GREEN}${CLIENT_LEGAL}${NC}"
-replace_in_files '<client legal name>' "$CLIENT_LEGAL"
+echo -e "Replacing ${CYAN}Sarah and Frank${NC} → ${GREEN}${CLIENT_LEGAL}${NC}"
+replace_in_files 'Sarah and Frank' "$CLIENT_LEGAL"
 
-echo -e "Replacing ${CYAN}<client>${NC} → ${GREEN}${CLIENT_NAME}${NC}"
-replace_in_files '<client>' "$CLIENT_NAME"
+echo -e "Replacing ${CYAN}Sarah and Frank${NC} → ${GREEN}${CLIENT_NAME}${NC}"
+replace_in_files 'Sarah and Frank' "$CLIENT_NAME"
 
 # 3. Rename fly.toml mount source
-sed_inplace "s|starter_app_data|${APP_NAME}_data|g" fly.toml 2>/dev/null || true
+sed_inplace "s|sarahandfrankwedding_data|${APP_NAME}_data|g" fly.toml 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}${BOLD}Done!${NC} Next steps:"

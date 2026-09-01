@@ -49,7 +49,7 @@ from core.models import AccessToken, AppSettings, EmailVerificationCode, Refresh
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(
-    title="starter_app API",
+    title="sarahandfrankwedding API",
     version="1.0.0",
     auth=TokenAuth(),
     # The schema at /api/openapi.json is what the mobile client generates from, so it

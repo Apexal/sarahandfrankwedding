@@ -37,7 +37,7 @@ python manage.py steady_queue &
 WORKER_PID=$!
 
 echo "Starting webserver..."
-gunicorn -c ./gunicorn.conf.py --bind [::]:8000 --workers 3 starter_app.wsgi &
+gunicorn -c ./gunicorn.conf.py --bind [::]:8000 --workers 3 sarahandfrankwedding.wsgi &
 SERVER_PID=$!
 
 # If any supervised process dies, exit so Fly restarts the machine — otherwise

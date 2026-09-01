@@ -1,7 +1,7 @@
 [project]
-name = "starter_app"
+name = "sarahandfrankwedding"
 version = "0.1.0"
-description = "<description>"
+description = "Public-facing site and management platform for our wedding."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -32,7 +32,7 @@ dependencies = [
 profile="django"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "starter_app.settings"
+DJANGO_SETTINGS_MODULE = "sarahandfrankwedding.settings"
 python_files = ["tests.py", "test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

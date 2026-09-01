@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project shape
 
-This is a Django 6 / Python 3.14 starter template managed with `uv`. The Django project package is `starter_app` — that name is a placeholder rewritten by `setup_project.sh` (along with `<client>`, `<client legal name>`, `<description>`) on first use. If you see those placeholders in real client work, the bootstrap step was skipped.
+This is a Django 6 / Python 3.14 starter template managed with `uv`. The Django project package is `sarahandfrankwedding` — that name is a placeholder rewritten by `setup_project.sh` (along with `Sarah and Frank`, `Sarah and Frank`, `Public-facing site and management platform for our wedding.`) on first use. If you see those placeholders in real client work, the bootstrap step was skipped.
 
 There are three installed apps that hold all custom code: `core` (users, admin, auth, middleware, signals, home/profile views), `messaging` (templated transactional email pipeline), and `agreements` (versioned legal agreements + consent trail). Add new domain apps as siblings.
 
@@ -21,7 +21,7 @@ make migrate      # makemigrations + migrate
 make seed         # core/management/commands/seed.py — creates admin/admin superuser + faker users
 ```
 
-Run a single test: `uv run pytest core/tests.py::TestHealthEndpoint -v` (pytest-django is configured via `pyproject.toml`; settings module is `starter_app.settings`).
+Run a single test: `uv run pytest core/tests.py::TestHealthEndpoint -v` (pytest-django is configured via `pyproject.toml`; settings module is `sarahandfrankwedding.settings`).
 
 ## Architecture notes that aren't obvious from one file
 
@@ -45,13 +45,13 @@ Run a single test: `uv run pytest core/tests.py::TestHealthEndpoint -v` (pytest-
 - **Staff MFA is enforced.** `allauth.mfa` provides TOTP, passkeys (WebAuthn), and recovery codes; `MFA_PASSKEY_LOGIN_ENABLED` also allows passwordless passkey login. `RequireStaffMfaMiddleware` redirects staff/superusers with no TOTP or WebAuthn authenticator to `/accounts/2fa/` to enroll (recovery codes alone don't count). Controlled by `MFA_REQUIRED_FOR_STAFF` — on by default, off in `.env.example` and under pytest (`TestRequireStaffMfa` opts back in per-test). Skipped during impersonation. `DEBUG=True` sets `MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN` so passkeys work on plain-http localhost.
 - **Type hint for views: `core.types.AppRequest`** — extends `HttpRequest` with `htmx: HtmxDetails` and a typed `user: User`. Use it as the request annotation in views to get correct typing for `request.user` and `request.htmx`.
 - **Admin login is hardened** by `allauth.account.decorators.secure_admin_login` (applied in `core/admin.py`). The default `Group` admin is unregistered. In the user admin, non-superuser staff get `is_staff`/`is_superuser`/`groups`/`user_permissions` as read-only and cannot change or delete superuser accounts — keep those guards when customizing `UserAdmin`.
-- **Logging is structlog + django-structlog.** `LOGGING` and `structlog.configure(...)` live at the top of `starter_app/settings.py`; the renderer is chosen by `ENV` — key/value for `ENV=development`, JSON everywhere else. `django_structlog.middlewares.RequestMiddleware` (last in `MIDDLEWARE`) binds `request_id`/`user_id`/`ip` and emits `request_started`/`request_finished`. `starter_app/logging.py` adds a `bind_extra_request_metadata` receiver that also binds `username`, `email`, `is_staff`; it's imported from `starter_app/__init__.py` so the receiver registers before Django loads settings. Get loggers with `structlog.get_logger(__name__)` and pass structured kwargs (`logger.info("event_name", order_id=42)`) rather than f-strings. Stdlib `logging.getLogger()` calls still work — they route through the same `ProcessorFormatter`. Levels: `LOG_LEVEL` (root, default INFO) and `DJANGO_LOG_LEVEL` (the noisy `django` logger, default WARNING).
+- **Logging is structlog + django-structlog.** `LOGGING` and `structlog.configure(...)` live at the top of `sarahandfrankwedding/settings.py`; the renderer is chosen by `ENV` — key/value for `ENV=development`, JSON everywhere else. `django_structlog.middlewares.RequestMiddleware` (last in `MIDDLEWARE`) binds `request_id`/`user_id`/`ip` and emits `request_started`/`request_finished`. `sarahandfrankwedding/logging.py` adds a `bind_extra_request_metadata` receiver that also binds `username`, `email`, `is_staff`; it's imported from `sarahandfrankwedding/__init__.py` so the receiver registers before Django loads settings. Get loggers with `structlog.get_logger(__name__)` and pass structured kwargs (`logger.info("event_name", order_id=42)`) rather than f-strings. Stdlib `logging.getLogger()` calls still work — they route through the same `ProcessorFormatter`. Levels: `LOG_LEVEL` (root, default INFO) and `DJANGO_LOG_LEVEL` (the noisy `django` logger, default WARNING).
 
 ## Frontend
 
 Tailwind + DaisyUI + HTMX. Build setup, template layout, and CSS-watch details live in `.claude/rules/frontend.md` (loaded automatically when working under `templates/` or `static/`).
 
-**Rich text is CKEditor 5** (`django-ckeditor-5`). Declare fields as `CKEditor5Field`; toolbars are defined by `CKEDITOR_5_CONFIGS` in `starter_app/settings.py` — `default` for short fields, `extends` for long-form prose. Nothing in the starter uses it yet; it's wired so a domain app can just add the field. Two rules:
+**Rich text is CKEditor 5** (`django-ckeditor-5`). Declare fields as `CKEditor5Field`; toolbars are defined by `CKEDITOR_5_CONFIGS` in `sarahandfrankwedding/settings.py` — `default` for short fields, `extends` for long-form prose. Nothing in the starter uses it yet; it's wired so a domain app can just add the field. Two rules:
 
 - **Render saved HTML inside a `.ck-content` container with `|safe`.** `static/css/ckeditor-content.css` re-establishes the heading/list/blockquote styling that Tailwind preflight strips, and is loaded both in the editor (`CKEDITOR_5_CUSTOM_CSS`) and on the page, so authors see what readers see.
 - **In your own templates use `{% ckeditor_media %}` (from `core_filters`), never `{{ form.media }}`.** Executing `bundle.js` twice resets `window.editors`/`ckeditorRegisterCallback` and orphans JS hooks attached to the first bundle. The tag renders once per request and returns nothing on later calls. The Django admin renders its own media and needs nothing.

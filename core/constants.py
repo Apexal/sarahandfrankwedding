@@ -38,8 +38,8 @@ def get_timezone_choices():
 
 
 COMPANY = {
-    "name": "<client>",
-    "legal_name": "<client legal name>",
+    "name": "Sarah and Frank",
+    "legal_name": "Sarah and Frank",
     "address": {
         "line1": "123 Example St",
         "line2": "",
@@ -49,3 +49,5 @@ COMPANY = {
         "country": "US",
     },
 }
+
+WEDDING_DATE = "2027-09-18"
