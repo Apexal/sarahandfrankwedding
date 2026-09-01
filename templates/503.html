@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Down for Maintenance</title>
+    <meta charset="utf-8" />
+    <meta name="description" content="We're performing scheduled maintenance. We'll be back shortly." />
+    <meta name="keywords" content="maintenance, unavailable" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="light dark" />
+    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
+</head>
+
+<body class="flex flex-col min-h-screen">
+    <main class="flex-1 flex flex-col">
+        <div class="hero bg-base-200 flex-1">
+            <div class="hero-content text-center">
+                <div class="max-w-md">
+                    <h1 class="text-8xl font-bold opacity-20">503</h1>
+                    <h2 class="text-3xl font-bold mt-4">Down for Maintenance</h2>
+                    <p class="py-6 text-base-content/70">
+                        We're performing scheduled maintenance. Please check back shortly.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

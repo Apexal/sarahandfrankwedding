@@ -1,0 +1,14 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    {% if change and request.user.is_superuser and original and request.user.pk != original.pk and not original.is_staff and not original.is_superuser %}
+        <li>
+            <form method="post" action="{% url 'admin:core_user_impersonate' original.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="button">{% trans "Impersonate User" %}</button>
+            </form>
+        </li>
+    {% endif %}
+{% endblock object-tools-items %}

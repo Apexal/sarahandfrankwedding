@@ -1,0 +1,31 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python-envs.pythonProjects": [],
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#4a4d40",
+        "activityBar.background": "#4a4d40",
+        "activityBar.foreground": "#e7e7e7",
+        "activityBar.inactiveForeground": "#e7e7e799",
+        "activityBarBadge.background": "#081418",
+        "activityBarBadge.foreground": "#e7e7e7",
+        "commandCenter.border": "#e7e7e799",
+        "sash.hoverBorder": "#4a4d40",
+        "statusBar.background": "#2f3129",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#4a4d40",
+        "statusBarItem.remoteBackground": "#30788f",
+        "statusBarItem.remoteForeground": "#e7e7e7",
+        "titleBar.activeBackground": "#2f3129",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#2f312999",
+        "titleBar.inactiveForeground": "#e7e7e799",
+        "activityBarTop.activeBackground": "#4a4d40",
+        "activityBarTop.background": "#4a4d40",
+        "activityBarTop.foreground": "#e7e7e7",
+        "activityBarTop.inactiveForeground": "#e7e7e799",
+        "commandCenter.foreground": "#e7e7e7",
+        "statusBar.debuggingBackground": "#2f3129",
+        "statusBar.debuggingForeground": "#e7e7e7"
+    },
+    "peacock.color": "#2f3129"
+}

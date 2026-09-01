@@ -1,0 +1,54 @@
+{% extends "core/base.html" %}
+
+{% block head_title %}Review Agreements — {{ block.super }}{% endblock head_title %}
+
+{% block content %}
+<div class="flex-1 flex justify-center py-8 px-4">
+    <div class="w-full max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-bold">Before you continue</h1>
+            <p class="opacity-70 mt-1">
+                {% if versions|length > 1 %}
+                    Please read and accept the following agreements.
+                {% else %}
+                    Please read and accept the following agreement.
+                {% endif %}
+            </p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% for version in versions %}
+                <div class="card bg-base-200 card-border">
+                    <div class="card-body space-y-4">
+                        <div>
+                            <h2 class="card-title">{{ version.agreement.name }}</h2>
+                            <p class="text-sm opacity-70">
+                                Version {{ version.version }} · Effective {{ version.effective_date|date:"F j, Y" }}
+                            </p>
+                        </div>
+
+                        <div class="max-h-96 overflow-y-auto rounded-box bg-base-100 p-4"
+                             tabindex="0"
+                             aria-label="{{ version.agreement.name }} text">
+                            {% include "agreements/includes/content.html" %}
+                        </div>
+
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox"
+                                   class="checkbox checkbox-primary"
+                                   name="accept"
+                                   value="{{ version.pk }}"
+                                   required />
+                            <span>I have read and agree to the {{ version.agreement.name }}.</span>
+                        </label>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary w-full">Accept and continue</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

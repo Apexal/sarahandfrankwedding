@@ -1,0 +1,97 @@
+/* CKEditor 5 content overrides.
+
+   Tailwind's preflight strips browser defaults from h1-h6, ul/ol, blockquote,
+   etc., and the daisyUI dark theme recolors base text. These rules re-establish
+   the styling CKEditor expects inside any `.ck-content` container so the
+   rendered HTML matches what authors see in the editor.
+
+   All selectors are scoped to `.ck-content` so this file has no effect outside
+   CKEditor-rendered content. */
+
+/* --- Headings --- */
+.ck-content h1 { font-size: 2em;    font-weight: 700; margin: 0; margin-top: 0.5em; padding: 0; }
+.ck-content h2 { font-size: 1.5em;  font-weight: 700; margin: 0; margin-top: 0.5em !important; padding: 0; }
+.ck-content h3 { font-size: 1.17em; font-weight: 700; margin: 1em 0;   padding: 0; }
+.ck-content h4 { font-size: 1em;    font-weight: 700; margin: 1.33em 0;padding: 0; }
+.ck-content h5 { font-size: 0.83em; font-weight: 700; margin: 1.67em 0;padding: 0; }
+.ck-content h6 { font-size: 0.67em; font-weight: 700; margin: 2.33em 0;padding: 0; }
+
+/* --- Paragraphs --- */
+.ck-content p { margin: 0.5em 0; }
+
+/* --- Lists (Tailwind preflight nukes list-style-type + padding) --- */
+.ck-content ul,
+.ck-content ol {
+    padding-left: 40px !important;
+    margin: 1em 0;
+}
+.ck-content ul          { list-style-type: disc; }
+.ck-content ol          { list-style-type: decimal; }
+.ck-content ul ul       { list-style-type: circle; }
+.ck-content ul ul ul    { list-style-type: square; }
+.ck-content li          { display: list-item; }
+
+/* --- Inline text --- */
+.ck-content strong, .ck-content b { font-weight: bold; }
+.ck-content em, .ck-content i     { font-style: italic; }
+.ck-content u                     { text-decoration: underline; }
+.ck-content s, .ck-content del    { text-decoration: line-through; }
+.ck-content a                     { color: #2563eb; text-decoration: underline; }
+
+/* --- Blockquote --- */
+.ck-content blockquote {
+    border-left: 5px solid #ccc;
+    padding-left: 1em;
+    margin: 1em 40px;
+    font-style: italic;
+}
+
+/* --- Code --- */
+.ck-content code {
+    background: #f5f5f5;
+    color: #c00;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: monospace;
+}
+.ck-content pre {
+    background: #1f1f1f;
+    color: #fff;
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+}
+
+/* --- Tables --- */
+.ck-content figure.table {
+    margin: 1em 0;
+    display: table;
+}
+.ck-content table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+.ck-content table td,
+.ck-content table th {
+    background: #fff;
+    color: #111;
+    padding: 0.4em;
+    border: 1px solid #bfbfbf;
+    min-width: 2em;
+}
+.ck-content table th {
+    background: #f5f5f5;
+    font-weight: 700;
+}
+
+/* --- CKEditor font-size feature utility classes --- */
+.ck-content .text-tiny  { font-size: 0.7em; }
+.ck-content .text-small { font-size: 0.85em; }
+.ck-content .text-big   { font-size: 1.4em; }
+.ck-content .text-huge  { font-size: 1.8em; }
+
+/* --- Editor-only: highlight focused nested editable (e.g. table cell) --- */
+.ck-content .ck-editor__nested-editable_focused {
+    background-color: #f5f5f5 !important;
+}

@@ -1,0 +1,75 @@
+[project]
+name = "starter_app"
+version = "0.1.0"
+description = "<description>"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "dj-database-url>=3.1.2",
+    "django>=6.0.1",
+    "django-allauth[mfa]>=65.14.0",
+    "django-anymail[resend]>=15.0",
+    "django-auditlog>=3.4.1",
+    "django-ckeditor-5>=0.2.20",
+    "django-csp>=4.0",
+    "django-htmx>=1.27.0",
+    "django-import-export[xlsx]>=4.4.0",
+    "django-ninja>=1.6.2",
+    "django-storages[s3]>=1.14.6",
+    "django-structlog>=10.1.0",
+    "faker>=37.0.0",
+    "gunicorn>=24.1.1",
+    "httpx>=0.28.1",
+    "markdown>=3.7",
+    "posthog>=7.9.12",
+    "psycopg[binary]>=3.3.4",
+    "python-dotenv>=1.2.1",
+    "steady-queue>=0.1.6",
+    "whitenoise>=6.11.0",
+]
+
+[tool.djlint]
+profile="django"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "starter_app.settings"
+python_files = ["tests.py", "test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--strict-markers --strict-config"
+# Surface deprecations as failures so dependency upgrades can't rot silently.
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "DJ",    # flake8-django
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "messaging"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+    "django-debug-toolbar>=6.2.0",
+    "pytest>=8.0",
+    "pytest-django>=4.9",
+    "tblib>=3.2.2",
+    "ipdb>=0.13.13",
+    "pre-commit>=4.5.1",
+    "django-browser-reload>=1.21.0",
+]

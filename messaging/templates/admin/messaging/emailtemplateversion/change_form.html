@@ -1,0 +1,172 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .email-preview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .email-preview-sidebar {
+    position: sticky;
+    top: 1rem;
+    border: 1px solid var(--hairline-color);
+    border-radius: 6px;
+    background: var(--body-bg);
+    overflow: hidden;
+  }
+
+  .email-preview-sidebar h2 {
+    margin: 0;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--hairline-color);
+  }
+
+  .email-preview-content {
+    padding: 1rem;
+  }
+
+  .email-preview-field {
+    margin-bottom: 1rem;
+  }
+
+  .email-preview-label {
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    display: block;
+  }
+
+  .email-preview-box {
+    border: 1px solid var(--hairline-color);
+    border-radius: 4px;
+    background: var(--darkened-bg);
+    padding: 0.75rem;
+    max-height: 16rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .email-preview-html-frame {
+    width: 100%;
+    min-height: 18rem;
+    border: 1px solid var(--hairline-color);
+    border-radius: 4px;
+    background: #fff;
+  }
+
+  .email-preview-status {
+    padding: 0 1rem 1rem;
+    color: var(--body-quiet-color);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 1400px) {
+    .email-preview-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .email-preview-sidebar {
+      position: static;
+    }
+  }
+</style>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="email-preview-layout">
+  <div>
+    {{ block.super }}
+  </div>
+  <aside class="email-preview-sidebar" aria-live="polite">
+    <h2>Live Preview</h2>
+    <div class="email-preview-content">
+      <div class="email-preview-field">
+        <span class="email-preview-label">Subject</span>
+        <div id="email-preview-subject" class="email-preview-box"></div>
+      </div>
+      <div class="email-preview-field">
+        <span class="email-preview-label">HTML</span>
+        <iframe id="email-preview-html" class="email-preview-html-frame" title="Email HTML preview"></iframe>
+      </div>
+      <div class="email-preview-field">
+        <span class="email-preview-label">Text</span>
+        <div id="email-preview-text" class="email-preview-box"></div>
+      </div>
+    </div>
+    <div id="email-preview-status" class="email-preview-status">Waiting for input...</div>
+  </aside>
+</div>
+
+<script>
+  (function () {
+    const previewUrl = "{{ preview_url|escapejs }}";
+    const templateKey = "{{ current_template_key|default:''|escapejs }}";
+    const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || "";
+
+    const subjectInput = document.getElementById("id_subject_template");
+    const htmlInput = document.getElementById("id_html_body_template");
+
+    const subjectPreview = document.getElementById("email-preview-subject");
+    const textPreview = document.getElementById("email-preview-text");
+    const htmlPreview = document.getElementById("email-preview-html");
+    const statusEl = document.getElementById("email-preview-status");
+
+    if (!subjectInput || !htmlInput || !subjectPreview || !textPreview || !htmlPreview || !statusEl) return;
+
+    let timer = null;
+
+    const updateStatus = (text) => {
+      statusEl.textContent = text;
+    };
+
+    const renderPreview = async () => {
+      updateStatus("Rendering preview...");
+      try {
+        const response = await fetch(previewUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+          },
+          body: JSON.stringify({
+            template_key: templateKey,
+            subject_template: subjectInput.value,
+            html_body_template: htmlInput.value
+          })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          const message = payload.error || "Could not render preview.";
+          updateStatus(message);
+          return;
+        }
+
+        subjectPreview.textContent = payload.subject || "";
+        textPreview.textContent = payload.text || "";
+        htmlPreview.srcdoc = payload.html || "";
+        updateStatus("Preview updated.");
+      } catch (error) {
+        updateStatus("Could not render preview.");
+      }
+    };
+
+    const queuePreview = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(renderPreview, 250);
+    };
+
+    [subjectInput, htmlInput].forEach((el) => {
+      el.addEventListener("input", queuePreview);
+      el.addEventListener("change", queuePreview);
+    });
+
+    renderPreview();
+  })();
+</script>
+{% endblock content %}

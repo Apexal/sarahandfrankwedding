@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+
+{% block head_title %}{{ version.agreement.name }} — {{ block.super }}{% endblock head_title %}
+
+{% block content %}
+<div class="flex-1 flex justify-center py-8 px-4">
+    <div class="w-full max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-bold">{{ version.agreement.name }}</h1>
+            <p class="text-sm opacity-70 mt-1">
+                Version {{ version.version }} · Effective {{ version.effective_date|date:"F j, Y" }}
+                {% if not version.is_current %}· No longer the current version{% endif %}
+            </p>
+        </div>
+
+        {% if accepted_at %}
+            <div role="alert" class="alert alert-success">
+                <span>You accepted this version on {{ accepted_at|date:"F j, Y" }} at {{ accepted_at|time:"g:i A" }}.</span>
+            </div>
+        {% endif %}
+
+        <div class="card bg-base-200 card-border">
+            <div class="card-body">
+                {% include "agreements/includes/content.html" %}
+            </div>
+        </div>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'agreements:history' %}" class="btn btn-ghost btn-sm">← Your agreements</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

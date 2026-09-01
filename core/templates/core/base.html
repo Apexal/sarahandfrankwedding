@@ -1,0 +1,63 @@
+{% load static django_htmx %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>
+        {% block head_title %}{{ company.name }}{% endblock head_title %}
+    </title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="{{ company.name }} web portal." />
+    <meta name="keywords" content="{{ company.name }}, web portal" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="light dark" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/ckeditor-content.css' %}" rel="stylesheet" type="text/css" />
+    {% htmx_script %}
+    {% block extra_head %}
+    {% endblock extra_head %}
+</head>
+
+<body class="{% block body_class %}flex flex-col min-h-screen{% endblock body_class %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% if impersonator %}
+    <header class="bg-error text-error-content text-center font-bold p-2 flex items-center justify-center gap-4">
+        <span>Impersonating {{ user.get_full_name|default:user.username }} ({{ user.email }}) — as {{ impersonator.first_name }} {{ impersonator.last_name|default:impersonator.email }}</span>
+        <form method="post" action="{% url 'core:stop_impersonation' %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline border-error-content text-error-content hover:bg-error-content hover:text-error">
+                Stop Impersonating
+            </button>
+        </form>
+    </header>
+    {% endif %}
+    {% if not production %}
+    <header class="bg-warning text-center font-bold p-1">
+        <p>This is the {{ environment }} environment. Not using real user data.</p>
+    </header>
+    {% endif %}
+    {% include "core/includes/navbar.html" %}
+    {% block body %}
+    <main class="flex-1 flex flex-col">
+        {% if messages %}
+        <div class="container mx-auto p-6 space-y-4">
+            {% for message in messages %}
+            <div role="alert"
+                class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock content %}
+    </main>
+    {% endblock body %}
+    {% block extra_body %}
+    {% endblock extra_body %}
+    {% include "core/includes/footer.html" %}
+</body>
+
+</html>

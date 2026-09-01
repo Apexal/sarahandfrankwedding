@@ -1,0 +1,12 @@
+{% load i18n %}
+<p>{% blocktrans %}Welcome to {{ site_name }}!{% endblocktrans %}</p>
+
+<p>{% trans "Enter this code in the app to verify your email address:" %}</p>
+
+<p style="font-size: 28px; font-weight: bold; letter-spacing: 6px;">{{ otp_code }}</p>
+
+<p>
+  {% blocktrans %}The code expires in {{ expires_minutes }} minutes.{% endblocktrans %}
+</p>
+
+<p>{% trans "If you didn't create an account, you can ignore this email." %}</p>

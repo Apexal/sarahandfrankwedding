@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@source not "./tailwindcss";
+@source not "./daisyui{,*}.mjs";
+
+@plugin "./daisyui.mjs";
+
+/* Long-form text rendered from Markdown (agreements app). Written as plain CSS
+   rather than @tailwindcss/typography because the build uses the standalone
+   Tailwind CLI, which has no npm plugin resolution. */
+.agreement-prose {
+    line-height: 1.7;
+}
+
+.agreement-prose > * + * {
+    margin-top: 1em;
+}
+
+.agreement-prose h1,
+.agreement-prose h2,
+.agreement-prose h3,
+.agreement-prose h4 {
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 1.6em;
+}
+
+.agreement-prose h1 { font-size: 1.5rem; }
+.agreement-prose h2 { font-size: 1.25rem; }
+.agreement-prose h3 { font-size: 1.125rem; }
+
+.agreement-prose ul,
+.agreement-prose ol {
+    padding-left: 1.5rem;
+}
+
+.agreement-prose ul { list-style: disc; }
+.agreement-prose ol { list-style: decimal; }
+.agreement-prose li + li { margin-top: 0.25em; }
+
+.agreement-prose a {
+    text-decoration: underline;
+    color: var(--color-primary);
+}
+
+.agreement-prose strong { font-weight: 700; }
+.agreement-prose em { font-style: italic; }
+
+.agreement-prose blockquote {
+    border-left: 3px solid var(--color-base-300);
+    padding-left: 1rem;
+    opacity: 0.8;
+}
+
+.agreement-prose table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.agreement-prose th,
+.agreement-prose td {
+    border: 1px solid var(--color-base-300);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.agreement-prose hr {
+    border-color: var(--color-base-300);
+}

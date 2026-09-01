@@ -1,0 +1,30 @@
+# See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
+# Production deploys are handled by the Release Please workflow.
+
+name: Fly Deploy Staging
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: fly-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - run: flyctl deploy --remote-only --config fly.staging.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_STAGING_API_TOKEN }}

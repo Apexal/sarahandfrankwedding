@@ -1,0 +1,130 @@
+{% load allauth %}
+{% if attrs.type == "checkbox" or attrs.type == "radio" %}
+    <fieldset class="fieldset mb-3">
+        <label class="flex items-center gap-2 cursor-pointer" for="{{ attrs.id }}">
+            <input {% if attrs.required %}required{% endif %}
+                   name="{{ attrs.name }}"
+                   class="{% if attrs.type == 'checkbox' %}checkbox{% else %}radio{% endif %}"
+                   id="{{ attrs.id }}"
+                   {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+                   {% if attrs.disabled %}disabled{% endif %}
+                   type="{{ attrs.type }}">
+            <span>
+                {% slot label %}
+                {% endslot %}
+            </span>
+        </label>
+        {% if slots.help_text %}
+            <p class="label">
+                {% slot help_text %}
+                {% endslot %}
+            </p>
+        {% endif %}
+    </fieldset>
+{% elif attrs.type == "textarea" %}
+    <fieldset class="fieldset mb-3">
+        <legend class="fieldset-legend">
+            {% slot label %}
+            {% endslot %}
+        </legend>
+        <textarea {% if attrs.required %}required{% endif %}
+                  {% if attrs.rows %}rows="{{ attrs.rows }}"{% endif %}
+                  class="textarea w-full {% if attrs.errors %}textarea-error{% endif %}"
+                  name="{{ attrs.name }}"
+                  {% if attrs.readonly %}readonly{% endif %}
+                  id="{{ attrs.id }}"
+                  {% if attrs.disabled %}disabled{% endif %}>{% slot value %}{% endslot %}</textarea>
+        {% if slots.help_text %}
+            <p class="label">
+                {% slot help_text %}
+                {% endslot %}
+            </p>
+        {% endif %}
+        {% if attrs.errors %}
+            {% for error in attrs.errors %}<p class="label text-error">{{ error }}</p>{% endfor %}
+        {% endif %}
+    </fieldset>
+{% elif attrs.type == "hidden" %}
+    <input {% if attrs.required %}required{% endif %}
+           name="{{ attrs.name }}"
+           id="{{ attrs.id }}"
+           {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+           type="hidden">
+{% elif attrs.type == "select" %}
+    <fieldset class="fieldset mb-3">
+        {% if attrs.unlabeled %}
+            <label class="floating-label" for="{{ attrs.id }}">
+                <select id="{{ attrs.id }}" name="{{ attrs.name }}" class="select w-full">
+                    {% for option in attrs.choices %}
+                        <option {% if option.0 == attrs.value %}selected{% endif %}
+                                value="{{ option.0 }}">{{ option.1 }}</option>
+                    {% endfor %}
+                </select>
+                <span>
+                    {% slot label %}
+                    {% endslot %}
+                </span>
+            </label>
+        {% else %}
+            <legend class="fieldset-legend">
+                {% slot label %}
+                {% endslot %}
+            </legend>
+            <select id="{{ attrs.id }}" name="{{ attrs.name }}" class="select w-full">
+                {% for option in attrs.choices %}
+                    <option {% if option.0 == attrs.value %}selected{% endif %}
+                            value="{{ option.0 }}">{{ option.1 }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
+    </fieldset>
+{% else %}
+    <fieldset class="fieldset mb-3">
+        {% if attrs.unlabeled %}
+            <label class="floating-label" for="{{ attrs.id }}">
+                <input {% if attrs.required %}required{% endif %}
+                       name="{{ attrs.name }}"
+                       {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% else %}placeholder=" "{% endif %}
+                       class="input w-full {% if attrs.errors %}input-error{% endif %}"
+                       id="{{ attrs.id }}"
+                       {% if attrs.readonly %}readonly{% endif %}
+                       {% if attrs.disabled %}disabled{% endif %}
+                       {% if attrs.tabindex %}tabindex="{{ attrs.tabindex }}"{% endif %}
+                       {% if attrs.style %}style="{{ attrs.style }}"{% endif %}
+                       {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+                       {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+                       type="{{ attrs.type }}">
+                <span>
+                    {% slot label %}
+                    {% endslot %}
+                </span>
+            </label>
+        {% else %}
+            <legend class="fieldset-legend">
+                {% slot label %}
+                {% endslot %}
+            </legend>
+            <input {% if attrs.required %}required{% endif %}
+                   name="{{ attrs.name }}"
+                   {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+                   class="input w-full {% if attrs.errors %}input-error{% endif %}"
+                   id="{{ attrs.id }}"
+                   {% if attrs.readonly %}readonly{% endif %}
+                   {% if attrs.disabled %}disabled{% endif %}
+                   {% if attrs.tabindex %}tabindex="{{ attrs.tabindex }}"{% endif %}
+                   {% if attrs.style %}style="{{ attrs.style }}"{% endif %}
+                   {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+                   {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+                   type="{{ attrs.type }}">
+        {% endif %}
+        {% if slots.help_text %}
+            <p class="label">
+                {% slot help_text %}
+                {% endslot %}
+            </p>
+        {% endif %}
+        {% if attrs.errors %}
+            {% for error in attrs.errors %}<p class="label text-error">{{ error }}</p>{% endfor %}
+        {% endif %}
+    </fieldset>
+{% endif %}

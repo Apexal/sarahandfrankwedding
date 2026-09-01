@@ -1,0 +1,32 @@
+<nav class="navbar bg-base-300">
+    <div class="container mx-auto">
+        <div class="flex-1">
+            <a href="{% url 'core:home' %}" class="btn btn-ghost text-xl">{{ company.name }}</a>
+        </div>
+        <div class="flex-none">
+            {% if user.is_authenticated %}
+                <ul class="menu menu-horizontal px-1">
+                    <li>
+                        <details>
+                            <summary>{{ user.name|default:user.email }}</summary>
+                            <ul class="p-2 bg-base-200 rounded-t-none z-50">
+                                <li><a href="{% url 'core:profile' %}">Profile</a></li>
+                                {% if user.is_staff or user.is_superuser %}
+                                <li><a target="_blank" href="{% url 'admin:index' %}">Admin Dashboard</a></li>
+                                {% endif %}
+                                <li><a href="{% url 'account_logout' %}">Logout</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                </ul>
+            {% else %}
+                <ul class="menu menu-horizontal px-1">
+                    <li><a href="{% url 'account_login' %}">Login</a></li>
+                    {% if app_settings.allow_registration %}
+                    <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</nav>

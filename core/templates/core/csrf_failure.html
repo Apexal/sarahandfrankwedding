@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+
+{% block head_title %}Session Expired{% endblock head_title %}
+
+{% block content %}
+<div class="hero bg-base-200 flex-1">
+    <div class="hero-content text-center">
+        <div class="max-w-md">
+            <h1 class="text-3xl font-bold">Your session expired</h1>
+            <p class="py-6">
+                For your security, this page needs to be reloaded before you can submit
+                the form again. Please reload and try again — you may need to re-enter
+                any unsaved changes.
+            </p>
+            <a href="{{ request.path }}" class="btn btn-primary">Reload Page</a>
+        </div>
+    </div>
+</div>
+{% endblock content %}

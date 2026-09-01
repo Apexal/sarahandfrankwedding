@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Group Django ecosystem minor/patch updates into one PR",
+      "groupName": "django ecosystem",
+      "matchPackageNames": ["django", "django-*"],
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  }
+}
