@@ -1,17 +1,17 @@
 /* CKEditor 5 content overrides.
 
    Tailwind's preflight strips browser defaults from h1-h6, ul/ol, blockquote,
-   etc., and the daisyUI dark theme recolors base text. These rules re-establish
-   the styling CKEditor expects inside any `.ck-content` container so the
+   etc. These rules re-establish the styling CKEditor expects inside any
+   `.ck-content` container, in the wedding palette (ink text, gold rules), so the
    rendered HTML matches what authors see in the editor.
 
    All selectors are scoped to `.ck-content` so this file has no effect outside
    CKEditor-rendered content. */
 
 /* --- Headings --- */
-.ck-content h1 { font-size: 2em;    font-weight: 700; margin: 0; margin-top: 0.5em; padding: 0; }
-.ck-content h2 { font-size: 1.5em;  font-weight: 700; margin: 0; margin-top: 0.5em !important; padding: 0; }
-.ck-content h3 { font-size: 1.17em; font-weight: 700; margin: 1em 0;   padding: 0; }
+.ck-content h1 { font-size: 2em;    font-weight: 500; margin: 0; margin-top: 0.5em; padding: 0; }
+.ck-content h2 { font-size: 1.5em;  font-weight: 500; margin: 0; margin-top: 0.5em !important; padding: 0; }
+.ck-content h3 { font-size: 1.17em; font-weight: 500; margin: 1em 0;   padding: 0; }
 .ck-content h4 { font-size: 1em;    font-weight: 700; margin: 1.33em 0;padding: 0; }
 .ck-content h5 { font-size: 0.83em; font-weight: 700; margin: 1.67em 0;padding: 0; }
 .ck-content h6 { font-size: 0.67em; font-weight: 700; margin: 2.33em 0;padding: 0; }
@@ -36,11 +36,12 @@
 .ck-content em, .ck-content i     { font-style: italic; }
 .ck-content u                     { text-decoration: underline; }
 .ck-content s, .ck-content del    { text-decoration: line-through; }
-.ck-content a                     { color: #2563eb; text-decoration: underline; }
+.ck-content a                     { color: #1b1410; text-decoration: underline; text-decoration-color: #c9a66b; text-underline-offset: 3px; }
+.ck-content a:hover               { text-decoration-color: #1b1410; }
 
 /* --- Blockquote --- */
 .ck-content blockquote {
-    border-left: 5px solid #ccc;
+    border-left: 1px solid #c9a66b;
     padding-left: 1em;
     margin: 1em 40px;
     font-style: italic;
@@ -74,15 +75,15 @@
 }
 .ck-content table td,
 .ck-content table th {
-    background: #fff;
-    color: #111;
+    background: #fffdf9;
+    color: #1b1410;
     padding: 0.4em;
-    border: 1px solid #bfbfbf;
+    border: 1px solid #c9a66b;
     min-width: 2em;
 }
 .ck-content table th {
-    background: #f5f5f5;
-    font-weight: 700;
+    background: #f6ecd9;
+    font-weight: 600;
 }
 
 /* --- CKEditor font-size feature utility classes --- */

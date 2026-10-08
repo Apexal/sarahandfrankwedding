@@ -1,0 +1,7 @@
+<div style="margin: 0 auto; max-width: 560px; padding: 24px 16px; font-family: Georgia, 'Times New Roman', serif; color: #2b2b2b; line-height: 1.5;">
+  <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: normal;">Hi {{ contact_names }},</h1>
+  <!-- Campaigns send with an empty body_html: write the announcement itself here, in this template, before sending. body_html is filled only when the email is sent from code. -->
+  <div style="font-size: 16px;">{{ body_html|safe }}</div>
+  <p style="margin: 24px 0 32px; font-size: 16px;">With love,<br>{{ couple_names }}</p>
+  <p style="margin: 0; padding-top: 16px; border-top: 1px solid #e5e0d8; font-size: 12px; color: #7a6f63;">Your personal link, in case you ever need it: <a href="{{ save_the_date_url }}" style="color: #7a6f63;">{{ save_the_date_url }}</a>{% if contact_email %}<br>Questions? Write to <a href="mailto:{{ contact_email }}" style="color: #7a6f63;">{{ contact_email }}</a>.{% endif %}</p>
+</div>

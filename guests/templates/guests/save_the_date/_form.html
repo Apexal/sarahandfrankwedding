@@ -1,0 +1,89 @@
+{% comment %}
+The address form, laid across the letter's two lower panels: the greeting and the address on
+the middle one, email, phone, and the button on the bottom one. Rendered by page.html with `form`
+(a HouseholdAddressForm or a GenericAddressForm). The honeypot is a real text input hidden from
+people (and assistive tech) with `hidden`.
+{% endcomment %}
+<form method="post" action="{{ request.path }}" hx-post="{{ request.path }}" hx-target="#std-reply" hx-swap="outerHTML" hx-disabled-elt="find button[type=submit]" data-address-form>
+    {% csrf_token %}
+    <div class="letter-folds">
+        <div class="letter-fold letter-fold-2">
+            <div class="letter-sheet letter-face">
+                <div class="mx-auto flex w-full max-w-[640px] flex-col gap-[22px]">
+                    {% if household %}
+                    <p class="text-center text-lede">Hi {{ household.contact_names }}!</p>
+                    {% endif %}
+                    {% if wedding.save_the_date_message %}
+                    <div class="ck-content mb-2 text-center text-small leading-relaxed">{{ wedding.save_the_date_message|safe }}</div>
+                    {% else %}
+                    <p class="mb-2 text-center text-small leading-relaxed">
+                        A formal invitation will follow in the new year. To make sure it reaches you, please confirm your mailing address below.
+                    </p>
+                    {% endif %}
+                    {% if form.errors %}
+                    <div role="alert" tabindex="-1" id="form-errors" class="notice notice-error">
+                        <p class="font-semibold">Please check the highlighted fields.</p>
+                        <ul>
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                            {% for field in form.visible_fields %}
+                            {% for error in field.errors %}
+                            <li>
+                                <a href="#{{ field.auto_id }}" class="text-link">{{ field.label }}: {{ error }}</a>
+                            </li>
+                            {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% if form.names %}
+                    {% include "guests/save_the_date/_field.html" with field=form.names %}
+                    {% endif %}
+                    <div class="grid gap-[22px] sm:grid-cols-2">
+                        {% include "guests/save_the_date/_field.html" with field=form.address_line1 %}
+                        {% include "guests/save_the_date/_field.html" with field=form.address_line2 %}
+                    </div>
+                    <div class="grid gap-[22px] sm:grid-cols-3">
+                        {% include "guests/save_the_date/_field.html" with field=form.city %}
+                        {% include "guests/save_the_date/_field.html" with field=form.state %}
+                        {% include "guests/save_the_date/_field.html" with field=form.postal_code %}
+                    </div>
+                </div>
+            </div>
+            <div class="letter-sheet letter-face letter-face-back"></div>
+            <div class="letter-fold letter-fold-3">
+                <div class="letter-sheet letter-face letter-face-last">
+                    <div class="mx-auto flex w-full max-w-[640px] flex-col gap-[22px]">
+                        <div class="grid gap-[22px] sm:grid-cols-2">
+                            {% include "guests/save_the_date/_field.html" with field=form.email %}
+                            {% include "guests/save_the_date/_field.html" with field=form.phone %}
+                        </div>
+                        {% if form.honeypot %}
+                        <div hidden aria-hidden="true">
+                            <label for="{{ form.honeypot.id_for_label }}">{{ form.honeypot.label }}</label>
+                            {{ form.honeypot }}
+                        </div>
+                        {% endif %}
+                        <button type="submit" class="button button-primary mt-2 w-full">Confirm address</button>
+                        {% if household %}
+                        <p class="text-center text-fine text-espresso">
+                            Not {{ household.contact_names }}?
+                            {% if wedding.save_the_date_open %}
+                                <a href="{% url 'save_the_date:generic' %}" class="text-link">Use this link instead</a>.
+                            {% elif wedding.contact_email %}
+                                This link is theirs. Email us at
+                                <a href="mailto:{{ wedding.contact_email }}" class="text-link">{{ wedding.contact_email }}</a>
+                                and we'll send you your own.
+                            {% else %}
+                                This link is theirs; please don't submit your address here.
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="letter-sheet letter-face letter-face-back"></div>
+            </div>
+        </div>
+    </div>
+</form>

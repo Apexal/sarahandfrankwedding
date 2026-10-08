@@ -1,4 +1,10 @@
-"""Hardcoded email template definitions and per-template context dataclasses."""
+"""Email template registry and per-template context dataclasses.
+
+`messaging` owns the registry but declares no templates of its own: domain apps register
+theirs from `AppConfig.ready()` (see `guests/email_contexts.py`), so this module never
+imports from them. A definition pairs a template key with the frozen dataclass that is
+the rendering contract; the HTML/subject bodies live in `EmailTemplateVersion` rows.
+"""
 
 from dataclasses import dataclass, fields
 from datetime import date, datetime
@@ -28,7 +34,25 @@ class TemplateDefinition:
     context_dataclass: type
 
 
-_TEMPLATE_DEFINITIONS = MappingProxyType({})
+_TEMPLATE_DEFINITIONS: dict[str, TemplateDefinition] = {}
+
+
+def register_template_definition(definition: TemplateDefinition) -> None:
+    """Add a template to the registry.
+
+    Re-registering the same key with the same context dataclass is a no-op, so a module
+    that registers at import time can be imported more than once. A different dataclass
+    for an existing key is a programming error: two apps would be fighting over the
+    rendering contract.
+    """
+    existing = _TEMPLATE_DEFINITIONS.get(definition.key)
+    if existing is not None and existing.context_dataclass is not definition.context_dataclass:
+        raise ValueError(
+            f"Template key '{definition.key}' is already registered with context "
+            f"'{existing.context_dataclass.__name__}', cannot re-register it with "
+            f"'{definition.context_dataclass.__name__}'."
+        )
+    _TEMPLATE_DEFINITIONS[definition.key] = definition
 
 
 def get_template_definition(template_key: str) -> TemplateDefinition | None:

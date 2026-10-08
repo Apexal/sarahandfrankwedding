@@ -1,0 +1,46 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}RSVP · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<section class="flex justify-center px-5 pt-14 pb-24 sm:px-16 sm:pt-20">
+    <div class="flex w-full max-w-[520px] flex-col gap-6">
+        <header class="flex flex-col items-center gap-5 text-center">
+            {% if wedding.rsvp_deadline %}
+            <p class="eyebrow motion-rise [animation-delay:100ms]">Kindly reply by {{ wedding.rsvp_deadline|date:"F j, Y" }}</p>
+            {% endif %}
+            <h1 class="page-title motion-ink text-[clamp(4.4444rem,3rem+5vw,6.2222rem)] [animation-delay:300ms]">RSVP</h1>
+            {% if wedding.rsvp_intro %}
+            <div class="ck-content motion-rise text-lede [animation-delay:800ms]">{{ wedding.rsvp_intro|safe }}</div>
+            {% else %}
+            <p class="motion-rise text-lede [animation-delay:800ms]">Tell us your name as it appears on your invitation and we'll find your party.</p>
+            {% endif %}
+        </header>
+        <form method="post" action="{% url 'rsvp:lookup' %}" class="motion-rise mt-3 flex flex-col gap-[22px] [animation-delay:1s]" aria-labelledby="lookup-by-name">
+            {% csrf_token %}
+            <h2 id="lookup-by-name" class="sr-only">Find your invitation by name</h2>
+            {% if name_form.errors %}
+            <div role="alert" class="notice notice-error">
+                <span>Please enter both your first and last name.</span>
+            </div>
+            {% endif %}
+            {% include "guests/rsvp/includes/field.html" with field=name_form.first_name %}
+            {% include "guests/rsvp/includes/field.html" with field=name_form.last_name %}
+            <button type="submit" class="button button-primary mt-1 w-full">Find my invitation</button>
+        </form>
+        <p class="rule-or eyebrow motion-rise mt-6 mb-2 tracking-[0.3em] [animation-delay:1.2s]">or</p>
+        <form method="post" action="{% url 'rsvp:lookup' %}" class="motion-rise flex flex-col gap-[22px] [animation-delay:1.3s]" aria-labelledby="lookup-by-code">
+            {% csrf_token %}
+            <div class="flex flex-col gap-3 text-center">
+                <h2 id="lookup-by-code" class="heading">Have a code? Enter it instead</h2>
+                <p class="text-small text-espresso">It's the six characters printed on your invitation.</p>
+            </div>
+            {% if code_form.errors %}
+            <div role="alert" class="notice notice-error">
+                <span>Please enter the code from your invitation.</span>
+            </div>
+            {% endif %}
+            {% include "guests/rsvp/includes/field.html" with field=code_form.code %}
+            <button type="submit" class="button button-outline mt-1 w-full">Use my code</button>
+        </form>
+    </div>
+</section>
+{% endblock content %}

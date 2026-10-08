@@ -1,0 +1,52 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}RSVP · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<section class="flex justify-center px-5 pt-14 pb-24 sm:px-16 sm:pt-20">
+    <div class="flex w-full max-w-[520px] flex-col gap-6">
+        <h1 class="page-title motion-ink text-[clamp(4.4444rem,3rem+5vw,6.2222rem)] [animation-delay:100ms]">RSVP</h1>
+        {% if candidates %}
+        <p class="motion-rise text-center text-lede [animation-delay:500ms]">Is this you? Pick your party to continue.</p>
+        <ul class="motion-rise flex flex-col gap-3 [animation-delay:700ms]" aria-label="Matching invitations">
+            {% for row in candidates %}
+            <li>
+                <form method="post" action="{% url 'rsvp:select' row.household.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="choice w-full flex-col items-start gap-1 py-4 text-left">
+                        <span class="heading text-[1.5556rem]">{{ row.household.name }}</span>
+                        {% if row.first_names %}<span class="text-small text-espresso">{{ row.first_names }}</span>{% endif %}
+                    </button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="motion-rise mt-4 text-center [animation-delay:900ms]">
+            <a href="{% url 'rsvp:start' %}" class="text-link">None of these? Search again</a>
+        </p>
+        {% else %}
+        <div role="alert" class="notice notice-error motion-rise [animation-delay:500ms]">
+            <span>
+                We couldn't find you. Try the code on your invitation{% if wedding.contact_email %}, or email us at
+                <a href="mailto:{{ wedding.contact_email }}" class="text-link">{{ wedding.contact_email }}</a>{% endif %}.
+            </span>
+        </div>
+        <form method="post" action="{% url 'rsvp:lookup' %}" class="motion-rise mt-4 flex flex-col gap-[22px] [animation-delay:700ms]" aria-labelledby="lookup-by-code">
+            {% csrf_token %}
+            <h2 id="lookup-by-code" class="heading text-center">Enter your invitation code</h2>
+            {% include "guests/rsvp/includes/field.html" with field=code_form.code %}
+            <button type="submit" class="button button-primary mt-1 w-full">Use my code</button>
+        </form>
+        <p class="rule-or eyebrow motion-rise mt-6 mb-2 tracking-[0.3em] [animation-delay:900ms]">or</p>
+        <form method="post" action="{% url 'rsvp:lookup' %}" class="motion-rise flex flex-col gap-[22px] [animation-delay:1s]" aria-labelledby="lookup-by-name">
+            {% csrf_token %}
+            <div class="flex flex-col gap-3 text-center">
+                <h2 id="lookup-by-name" class="heading">Try your name again</h2>
+                <p class="text-small text-espresso">Use the name on the envelope — a nickname is fine.</p>
+            </div>
+            {% include "guests/rsvp/includes/field.html" with field=name_form.first_name %}
+            {% include "guests/rsvp/includes/field.html" with field=name_form.last_name %}
+            <button type="submit" class="button button-outline mt-1 w-full">Find my invitation</button>
+        </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock content %}

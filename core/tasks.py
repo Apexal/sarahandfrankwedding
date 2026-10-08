@@ -1,18 +1,14 @@
-from datetime import timedelta
+import io
 
-import posthog
 import structlog
-from auditlog import get_logentry_model
-from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.management import call_command
 from django.tasks import task
 from django.utils import timezone
 from steady_queue.recurring_task import recurring
 
 logger = structlog.get_logger(__name__)
-
-#: How long a user has to change their mind after requesting account deletion.
-GRACE_PERIOD = timedelta(days=30)
 
 
 def recurring_if_supported(*, schedule: str, key: str):
@@ -47,84 +43,47 @@ def clear_expired_sessions():
     _clear_expired_sessions()
 
 
-def _prune_audit_log():
-    cutoff = timezone.now() - timedelta(days=settings.AUDITLOG_RETENTION_DAYS)
-    deleted_count, _ = get_logentry_model().objects.filter(timestamp__lt=cutoff).delete()
-    logger.info(
-        "audit_log_pruned",
-        deleted=deleted_count,
-        retention_days=settings.AUDITLOG_RETENTION_DAYS,
-    )
-    return deleted_count
+#: Nightly guest-data dumps kept in the bucket. The guest list is the crown jewel.
+GUEST_BACKUP_KEEP = 30
+GUEST_BACKUP_PREFIX = "backups/"
 
 
-@recurring_if_supported(schedule="10 3 * * *", key="prune audit log")
-@task()
-def prune_audit_log():
-    """Keep the audit trail bounded: delete entries older than AUDITLOG_RETENTION_DAYS."""
-    _prune_audit_log()
+def _backup_guest_data(*, keep: int = GUEST_BACKUP_KEEP) -> str:
+    """Write `dumpdata guests pages` to the default storage and keep the newest `keep` files.
 
-
-# ---------------------------------------------------------------------------
-# Account deletion
-# ---------------------------------------------------------------------------
-
-
-@task()
-def execute_account_deletion_task(*, deletion_request_id: int) -> None:
-    """Run the deletion pipeline for one account.
-
-    Takes an id rather than an ORM instance because that is all a queued job can
-    carry across a process boundary.
+    Restore with `manage.py loaddata <file>`. Fly Postgres snapshots sit underneath this;
+    their retention is short, which is why the JSON copy exists.
     """
-    # Imported here, not at module scope: core.deletion imports core.models, and
-    # messaging.tasks imports this module, so a top-level import would make app
-    # loading order matter.
-    from core.deletion import execute_account_deletion
-    from core.models import AccountDeletionRequest
-
-    deletion_request = (
-        AccountDeletionRequest.objects.select_related("user")
-        .filter(pk=deletion_request_id, status=AccountDeletionRequest.Status.SCHEDULED)
-        .first()
-    )
-    if deletion_request is None:
-        logger.warning("account_deletion_skipped", deletion_request_id=deletion_request_id, reason="not_scheduled")
-        return
-
-    user = deletion_request.user
-    if user is None:
-        deletion_request.status = AccountDeletionRequest.Status.COMPLETED
-        deletion_request.completed_at = timezone.now()
-        deletion_request.save(update_fields=["status", "completed_at", "updated_at"])
-        return
-
-    user_id = user.pk
-    with posthog.new_context():
-        posthog.identify_context(str(user_id))
-        execute_account_deletion(user, deletion_request=deletion_request)
-        posthog.capture("account_deleted", distinct_id=str(user_id))
+    buffer = io.StringIO()
+    call_command("dumpdata", "guests", "pages", format="json", indent=2, stdout=buffer)
+    name = f"{GUEST_BACKUP_PREFIX}guests-{timezone.localdate():%Y-%m-%d}.json"
+    if default_storage.exists(name):
+        default_storage.delete(name)
+    saved_name = default_storage.save(name, ContentFile(buffer.getvalue().encode()))
+    removed = _prune_guest_backups(keep=keep)
+    logger.info("guest_data_backed_up", file=saved_name, bytes=buffer.tell(), pruned=removed)
+    return saved_name
 
 
-def _sweep_due_account_deletions() -> int:
-    from core.models import AccountDeletionRequest
-
-    due = AccountDeletionRequest.objects.filter(
-        status=AccountDeletionRequest.Status.SCHEDULED,
-        scheduled_for__lte=timezone.now(),
-    ).values_list("pk", flat=True)
-
-    # One job per account: a single account that fails to delete shouldn't
-    # strand every other account queued behind it.
-    for deletion_request_id in list(due):
-        execute_account_deletion_task.enqueue(deletion_request_id=deletion_request_id)
-
-    logger.info("account_deletions_swept", queued=len(due))
-    return len(due)
+def _prune_guest_backups(*, keep: int) -> int:
+    try:
+        _, files = default_storage.listdir(GUEST_BACKUP_PREFIX)
+    except FileNotFoundError, NotADirectoryError:
+        return 0
+    backups = sorted(name for name in files if name.startswith("guests-") and name.endswith(".json"))
+    stale = backups[:-keep] if keep > 0 else backups
+    for name in stale:
+        default_storage.delete(f"{GUEST_BACKUP_PREFIX}{name}")
+    return len(stale)
 
 
-@recurring_if_supported(schedule="30 3 * * *", key="sweep due account deletions")
+# Cron is evaluated in UTC by steady_queue: 03:40 UTC is late evening Eastern, after the
+# day's RSVPs and before the morning campaign batch.
+@recurring_if_supported(schedule="40 3 * * *", key="backup guest data")
 @task()
-def sweep_due_account_deletions():
-    """Execute deletion requests whose grace period has elapsed."""
-    _sweep_due_account_deletions()
+def backup_guest_data():
+    try:
+        _backup_guest_data()
+    except Exception as exc:
+        logger.exception("guest_data_backup_failed", task="backup_guest_data", error_type=type(exc).__name__)
+        raise

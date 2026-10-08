@@ -32,7 +32,7 @@ def format_phone(phone_number):
     """
     Format a phone number in E.164 format (+1234567890) to a human-readable format.
     Examples:
-        +13478519465 -> +1 (347) 851-9465
+        +12125550123 -> +1 (212) 555-0123
         +442071234567 -> +44 20 7123 4567
     """
     if not phone_number:

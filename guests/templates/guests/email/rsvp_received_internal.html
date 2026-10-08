@@ -1,0 +1,8 @@
+<div style="margin: 0 auto; max-width: 560px; padding: 24px 16px; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #2b2b2b; line-height: 1.5;">
+  <h1 style="margin: 0 0 16px; font-size: 20px;">{{ household_name }} ({{ contact_names }}) just RSVPed</h1>
+  <ul style="margin: 0 0 16px; padding-left: 20px; font-size: 15px;">
+    {% for line in summary_lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+  <p style="margin: 0 0 24px; font-size: 15px;"><a href="{{ admin_url }}" style="color: #2b2b2b;">Open the household in the admin</a></p>
+  <p style="margin: 0; padding-top: 16px; border-top: 1px solid #e5e0d8; font-size: 12px; color: #7a6f63;">Their personal link, in case they ever need it: <a href="{{ save_the_date_url }}" style="color: #7a6f63;">{{ save_the_date_url }}</a>{% if contact_email %}<br>Sent to {{ contact_email }} by {{ site_url }}.{% endif %}</p>
+</div>

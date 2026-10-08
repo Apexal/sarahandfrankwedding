@@ -20,6 +20,8 @@ repos:
     rev: v1.36.4
     hooks:
       - id: djlint-django
+        # Email bodies need inline styles (H021); they are rendered by messaging, not Django's loader.
+        exclude: ^guests/templates/guests/email/
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.4.0

@@ -3,6 +3,7 @@ from datetime import timedelta
 from types import MappingProxyType
 
 import pytest
+from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
 
@@ -14,7 +15,7 @@ from messaging.services import (
     EmailTemplateRenderError,
     EmailTemplateService,
 )
-from messaging.tasks import _prune_outbound_emails
+from messaging.tasks import _prune_outbound_emails, _send_outbound_email
 from messaging.template_definitions import TemplateDefinition
 
 
@@ -145,3 +146,72 @@ class TestAllauthEmailPipeline:
         assert outbound_email.status == OutboundEmail.DeliveryStatus.QUEUED
         assert outbound_email.subject_rendered
         assert outbound_email.body_text_rendered
+
+
+class TestRegisterTemplateDefinition:
+    @pytest.fixture(autouse=True)
+    def _fresh_registry(self, monkeypatch):
+        monkeypatch.setattr(template_definitions, "_TEMPLATE_DEFINITIONS", {})
+
+    def test_registers_and_is_idempotent(self):
+        definition = TemplateDefinition(key="welcome", name="Welcome", context_dataclass=WelcomeContext)
+        template_definitions.register_template_definition(definition)
+        template_definitions.register_template_definition(definition)
+        assert template_definitions.get_allowed_template_keys() == ["welcome"]
+        assert template_definitions.get_template_definition("welcome") is definition
+        assert template_definitions.get_context_variable_names("welcome") == ["first_name"]
+
+    def test_rejects_a_different_dataclass_for_the_same_key(self):
+        template_definitions.register_template_definition(
+            TemplateDefinition(key="welcome", name="Welcome", context_dataclass=WelcomeContext)
+        )
+        with pytest.raises(ValueError, match="already registered"):
+            template_definitions.register_template_definition(
+                TemplateDefinition(key="welcome", name="Welcome", context_dataclass=WrongContext)
+            )
+        assert template_definitions.get_template_definition("welcome").context_dataclass is WelcomeContext
+
+
+@pytest.mark.django_db
+class TestRecipientAllowlist:
+    """With EMAIL_RECIPIENT_ALLOWLIST set, staging can never email a real guest."""
+
+    def _outbound(self, to_email="guest@example.com"):
+        return OutboundEmail.objects.create(
+            to_email=to_email,
+            subject_rendered="Save the date",
+            body_text_rendered="hi",
+            body_html_rendered="<p>hi</p>",
+            template_key="save_the_date",
+        )
+
+    def test_redirects_outside_addresses_and_keeps_the_original_on_the_row(self, settings):
+        settings.EMAIL_RECIPIENT_ALLOWLIST = ["frank@example.com", "sarah@example.com"]
+        outbound_email = self._outbound()
+
+        _send_outbound_email(outbound_email_id=outbound_email.pk)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ["frank@example.com"]
+        assert mail.outbox[0].subject == "[to: guest@example.com] Save the date"
+        outbound_email.refresh_from_db()
+        assert outbound_email.to_email == "guest@example.com"
+        assert outbound_email.status == OutboundEmail.DeliveryStatus.SENT
+
+    def test_allowed_addresses_are_delivered_as_is(self, settings):
+        settings.EMAIL_RECIPIENT_ALLOWLIST = ["frank@example.com"]
+        outbound_email = self._outbound(to_email="Frank@Example.com")
+
+        _send_outbound_email(outbound_email_id=outbound_email.pk)
+
+        assert mail.outbox[0].to == ["Frank@Example.com"]
+        assert mail.outbox[0].subject == "Save the date"
+
+    def test_empty_allowlist_changes_nothing(self, settings):
+        settings.EMAIL_RECIPIENT_ALLOWLIST = []
+        outbound_email = self._outbound()
+
+        _send_outbound_email(outbound_email_id=outbound_email.pk)
+
+        assert mail.outbox[0].to == ["guest@example.com"]
+        assert mail.outbox[0].subject == "Save the date"

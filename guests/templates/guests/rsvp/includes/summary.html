@@ -1,0 +1,43 @@
+{% comment %}Read-only view of a household's answers. Expects `summary` (from household_summary).{% endcomment %}
+<div class="sheet overflow-x-auto">
+    <table class="w-full border-collapse text-left">
+        <caption class="sr-only">Who is coming to what</caption>
+        <thead>
+            <tr class="border-b border-gold">
+                <th scope="col" class="eyebrow px-5 py-4 font-normal sm:px-8">Guest</th>
+                <th scope="col" class="eyebrow px-5 py-4 font-normal sm:px-8">Answers</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for guest in summary.guests %}
+            <tr class="border-b border-gold/50 last:border-b-0">
+                <th scope="row" class="px-5 py-4 align-top font-semibold sm:px-8">{{ guest.name }}</th>
+                <td class="px-5 py-4 sm:px-8">
+                    <ul class="space-y-1">
+                        {% for answer in guest.answers %}
+                        <li>
+                            {{ answer.event }}:
+                            {% if answer.attending is True %}<span class="font-semibold">Yes</span>
+                            {% elif answer.attending is False %}<span class="font-semibold">No</span>
+                            {% else %}<span class="text-espresso italic">No answer yet</span>{% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="text-espresso italic">No events to answer for.</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if summary.question_answers %}
+<dl class="mt-6 space-y-4">
+    {% for answer in summary.question_answers %}
+    <div>
+        <dt class="font-semibold">{{ answer.label }}{% if answer.guest %} <span class="font-normal text-espresso">({{ answer.guest }})</span>{% endif %}</dt>
+        <dd class="whitespace-pre-line">{{ answer.value }}</dd>
+    </div>
+    {% endfor %}
+</dl>
+{% endif %}

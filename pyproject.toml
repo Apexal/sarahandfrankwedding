@@ -9,27 +9,27 @@ dependencies = [
     "django>=6.0.1",
     "django-allauth[mfa]>=65.14.0",
     "django-anymail[resend]>=15.0",
-    "django-auditlog>=3.4.1",
     "django-ckeditor-5>=0.2.20",
     "django-csp>=4.0",
     "django-htmx>=1.27.0",
     "django-import-export[xlsx]>=4.4.0",
-    "django-ninja>=1.6.2",
     "django-storages[s3]>=1.14.6",
     "django-structlog>=10.1.0",
-    "faker>=37.0.0",
     "gunicorn>=24.1.1",
     "httpx>=0.28.1",
     "markdown>=3.7",
-    "posthog>=7.9.12",
     "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.1",
+    "qrcode>=8.2",
+    "rapidfuzz>=3.14.6",
     "steady-queue>=0.1.6",
     "whitenoise>=6.11.0",
 ]
 
 [tool.djlint]
 profile="django"
+# Email bodies need inline styles (H021) and are rendered by messaging, not Django's loader.
+exclude="guests/templates/guests/email"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "sarahandfrankwedding.settings"
@@ -60,7 +60,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "messaging"]
+known-first-party = ["core", "messaging", "pages", "guests"]
 
 [dependency-groups]
 dev = [

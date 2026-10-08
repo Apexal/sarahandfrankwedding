@@ -1,0 +1,19 @@
+{% comment %}
+The part of the letter a submit replaces: the address form (_form.html) or, once `submitted`,
+the thank-you. Included by _letter.html, and rendered on its own as the response to the form's
+HTMX post, which swaps it in place so the photo panel above is not redrawn and the page keeps
+its scroll position. Without JavaScript the form posts normally and the whole page comes back.
+{% endcomment %}
+<div id="std-reply">
+    {% if submitted %}
+    <div class="letter-sheet letter-face letter-face-last">
+        <div id="thank-you" class="mx-auto flex w-full max-w-[640px] flex-col items-center gap-5 text-center">
+            <h2 tabindex="-1" class="heading focus:outline-none">Thank you{% if household %}, {{ household.contact_names }}{% endif %}!</h2>
+            <p class="text-lede">We have your address. Watch the mail for your invitation in the new year.</p>
+            <a href="{% url 'pages:home' %}" class="button button-primary mt-3">Visit our website</a>
+        </div>
+    </div>
+    {% else %}
+    {% include "guests/save_the_date/_form.html" %}
+    {% endif %}
+</div>

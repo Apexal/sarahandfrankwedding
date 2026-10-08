@@ -1,0 +1,46 @@
+{% comment %}
+The site's nav links as <li>s, shared by the desktop row and the phone menu in navbar.html
+(and the "Explore the site" list on the save-the-date). Expects `current`, the resolved view name.
+/rsvp/ and /manage/ are literal paths on purpose: they are printed on the invitation.
+{% endcomment %}
+<li>
+    <a href="{% url 'pages:home' %}" class="nav-link" {% if current == 'pages:home' %}aria-current="page"{% endif %}>Home</a>
+</li>
+<li>
+    <a href="{% url 'pages:schedule' %}" class="nav-link" {% if current == 'pages:schedule' %}aria-current="page"{% endif %}>Schedule</a>
+</li>
+{% for nav_page in nav_pages %}
+<li>
+    <a href="{% url 'pages:page' nav_page.slug %}" class="nav-link" {% if current == 'pages:page' and request.resolver_match.kwargs.slug == nav_page.slug %}aria-current="page"{% endif %}>{{ nav_page.nav_text }}</a>
+</li>
+{% endfor %}
+<li>
+    <a href="{% url 'pages:registry' %}" class="nav-link" {% if current == 'pages:registry' %}aria-current="page"{% endif %}>Registry</a>
+</li>
+<li>
+    <a href="{% url 'pages:faq' %}" class="nav-link" {% if current == 'pages:faq' %}aria-current="page"{% endif %}>FAQ</a>
+</li>
+{% if wedding.photo_album_url %}
+<li>
+    <a href="{% url 'pages:photos' %}" class="nav-link" {% if current == 'pages:photos' %}aria-current="page"{% endif %}>Photos</a>
+</li>
+{% endif %}
+{# djlint:off D018 #}
+{% if wedding.rsvp_open %}
+<li>
+    <a href="/rsvp/" class="nav-link" {% if request.resolver_match.namespace == 'rsvp' %}aria-current="page"{% endif %}>RSVP</a>
+</li>
+{% endif %}
+{% if user.is_staff or user.is_superuser %}
+<li class="relative">
+    <details>
+        <summary class="nav-link list-none [&::-webkit-details-marker]:hidden">Staff</summary>
+        <ul class="z-50 flex flex-col py-2 lg:absolute lg:right-0 lg:mt-1 lg:w-48 lg:border lg:border-gold lg:bg-paper lg:px-4">
+            <li><a href="{% url 'admin:index' %}" class="nav-link">Admin</a></li>
+            <li><a href="/manage/" class="nav-link">Dashboard</a></li>
+            <li><a href="{% url 'account_logout' %}" class="nav-link">Logout</a></li>
+        </ul>
+    </details>
+</li>
+{% endif %}
+{# djlint:on #}

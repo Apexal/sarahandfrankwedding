@@ -2,8 +2,6 @@
 
 from django.db import migrations, models
 
-import core.constants
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -14,6 +12,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="time_zone",
-            field=models.CharField(blank=True, choices=core.constants.get_timezone_choices, max_length=50),
+            field=models.CharField(blank=True, choices=[], max_length=50),
         ),
     ]

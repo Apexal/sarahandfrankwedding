@@ -1,0 +1,19 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}Registry · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+{% include "pages/includes/page_header.html" with eyebrow="Gifts" title="Registry" %}
+<section class="mx-auto flex w-full max-w-[520px] flex-col gap-8 px-5 pt-10 pb-24 text-center">
+    {% if wedding.registry_links %}
+    <p class="motion-rise text-lede [animation-delay:1s]">Your presence is the present. If you'd like to give something, we're registered here:</p>
+    <ul class="motion-rise flex flex-col gap-4 [animation-delay:1.2s]">
+        {% for link in wedding.registry_links %}
+        <li>
+            <a href="{{ link.url }}" class="button button-outline w-full">{{ link.label }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="motion-rise text-lede [animation-delay:1s]">Details to follow.</p>
+    {% endif %}
+</section>
+{% endblock content %}

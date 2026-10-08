@@ -1,0 +1,286 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}Dashboard · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="flex flex-wrap items-baseline justify-between gap-4">
+    <h1 class="font-display text-3xl sm:text-4xl">Dashboard</h1>
+    <nav aria-label="Staff pages" class="flex flex-wrap gap-2">
+        <a href="{% url 'manage:seating' %}" class="btn btn-sm btn-outline">Seating</a>
+        <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline">Admin</a>
+    </nav>
+</div>
+
+<section class="mt-10 space-y-4" aria-labelledby="addresses-heading">
+    <h2 id="addresses-heading" class="font-display text-2xl">Address collection</h2>
+    <div class="card bg-base-200 rounded-box">
+        <div class="card-body p-6 space-y-3">
+            {% for row in address.progress %}
+            {% include "guests/manage/_progress.html" with row=row %}
+            {% endfor %}
+        </div>
+    </div>
+    <h3 class="text-lg font-semibold">Still need an address ({{ address.missing|length }})</h3>
+    {% if address.missing %}
+    <div class="overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Household</th>
+                    <th>Contacts</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Emailed</th>
+                    <th>Save-the-date link</th>
+                    <th><span class="sr-only">Admin</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for household in address.missing %}
+                <tr>
+                    <td>
+                        {{ household.name }}
+                        <br />
+                        <span class="badge badge-ghost badge-sm">{{ household.get_side_display }}</span>
+                    </td>
+                    <td>{{ household.contact_names }}</td>
+                    <td>{{ household.phone|default:"—" }}</td>
+                    <td>{{ household.email|default:"—" }}</td>
+                    <td>
+                        {% if household.emailed %}
+                            <span class="badge badge-success badge-sm">Sent</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm">Not yet</span>
+                        {% endif %}
+                    </td>
+                    <td><code class="select-all text-xs">{{ household.save_the_date_url }}</code></td>
+                    <td><a href="{% url 'admin:guests_household_change' household.pk %}" class="link link-primary">Edit</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Every household has a confirmed address.</p>
+    {% endif %}
+</section>
+
+<section class="mt-10 space-y-4" aria-labelledby="events-heading">
+    <h2 id="events-heading" class="font-display text-2xl">RSVPs by event</h2>
+    {% for row in events %}
+    <div class="card bg-base-200 rounded-box">
+        <div class="card-body p-6 space-y-4">
+            <h3 class="text-lg font-semibold">{{ row.event.name }}</h3>
+            <div class="stats stats-vertical sm:stats-horizontal bg-base-100 w-full">
+                <div class="stat">
+                    <div class="stat-title">Invited</div>
+                    <div class="stat-value">{{ row.invited }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Yes</div>
+                    <div class="stat-value text-success">{{ row.yes }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">No</div>
+                    <div class="stat-value text-error">{{ row.no }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Pending</div>
+                    <div class="stat-value">{{ row.pending }}</div>
+                </div>
+            </div>
+            {% include "guests/manage/_progress.html" with row=row.progress %}
+        </div>
+    </div>
+    {% empty %}
+    <p>No RSVP-required events yet.</p>
+    {% endfor %}
+</section>
+
+<section class="mt-10 space-y-4" aria-labelledby="responses-heading">
+    <h2 id="responses-heading" class="font-display text-2xl">Households responded</h2>
+    <div class="card bg-base-200 rounded-box">
+        <div class="card-body p-6 space-y-3">
+            {% for row in responses.progress %}
+            {% include "guests/manage/_progress.html" with row=row %}
+            {% endfor %}
+        </div>
+    </div>
+    <div class="stats stats-vertical sm:stats-horizontal bg-base-200 w-full">
+        <div class="stat">
+            <div class="stat-title">Not yet responded</div>
+            <div class="stat-value">{{ responses.non_responders }}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">Has email (nudge)</div>
+            <div class="stat-value">{{ responses.nudgeable }}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">No email (call)</div>
+            <div class="stat-value">{{ responses.call }}</div>
+            <div class="stat-desc">Includes bounced and opted-out addresses.</div>
+        </div>
+    </div>
+</section>
+
+{% if questions %}
+<section class="mt-10 space-y-4" aria-labelledby="answers-heading">
+    <h2 id="answers-heading" class="font-display text-2xl">Answers</h2>
+    {% for item in questions %}
+    <div class="card bg-base-200 rounded-box">
+        <div class="card-body p-6 space-y-3">
+            <h3 class="text-lg font-semibold">
+                {{ item.question.label }}
+                <span class="badge badge-ghost badge-sm align-middle">{{ item.total }} answer{{ item.total|pluralize }}</span>
+            </h3>
+            {% if item.kind == "choices" %}
+                {% for row in item.rows %}
+                {% include "guests/manage/_progress.html" with row=row color="progress-secondary" %}
+                {% endfor %}
+            {% else %}
+                <ul class="space-y-2">
+                    {% for answer in item.answers %}
+                    <li>
+                        <span class="font-semibold">{{ answer.who }}:</span>
+                        <span class="whitespace-pre-line">{{ answer.text }}</span>
+                    </li>
+                    {% empty %}
+                    <li>No answers yet.</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section class="mt-10 space-y-4" aria-labelledby="activity-heading">
+    <h2 id="activity-heading" class="font-display text-2xl">Activity</h2>
+    <div role="status" class="alert {% if new_submissions %}alert-info{% endif %}">
+        <span>
+            {{ new_submissions }} new contact submission{{ new_submissions|pluralize }} from the generic save-the-date page.
+        </span>
+        <a href="{{ submissions_url }}" class="link">Review</a>
+    </div>
+
+    <h3 class="text-lg font-semibold">Recent RSVPs</h3>
+    {% if recent_rsvps %}
+    <div class="overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Guest</th>
+                    <th>Event</th>
+                    <th>Attending</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rsvp in recent_rsvps %}
+                <tr>
+                    <td><time datetime="{{ rsvp.responded_at|date:'c' }}">{{ rsvp.responded_at|date:"M j, g:i A" }}</time></td>
+                    <td>
+                        <a href="{% url 'admin:guests_household_change' rsvp.guest.household_id %}" class="link">{{ rsvp.guest.display_name }}</a>
+                        <span class="text-sm opacity-80">({{ rsvp.guest.household.name }})</span>
+                    </td>
+                    <td>{{ rsvp.event.name }}</td>
+                    <td>
+                        {% if rsvp.attending %}
+                            <span class="badge badge-success badge-sm">Yes</span>
+                        {% else %}
+                            <span class="badge badge-error badge-sm">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No RSVPs yet.</p>
+    {% endif %}
+
+    <h3 class="text-lg font-semibold">Bounced emails ({{ bounced|length }})</h3>
+    {% if bounced %}
+    <ul class="space-y-1">
+        {% for household in bounced %}
+        <li>
+            <a href="{% url 'admin:guests_household_change' household.pk %}" class="link">{{ household.name }}</a>
+            <span class="text-sm opacity-80">{{ household.email }} · bounced {{ household.email_bounced_at|date:"M j" }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No bounces.</p>
+    {% endif %}
+
+    <h3 class="text-lg font-semibold">Campaigns</h3>
+    {% if campaigns %}
+    <div class="overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Campaign</th>
+                    <th>Audience</th>
+                    <th>Status</th>
+                    <th>Recipients</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in campaigns %}
+                <tr>
+                    <td><a href="{% url 'admin:guests_campaign_change' item.campaign.pk %}" class="link">{{ item.campaign.name }}</a></td>
+                    <td>{{ item.campaign.get_audience_display }}</td>
+                    <td><span class="badge badge-ghost badge-sm">{{ item.campaign.get_status_display }}</span></td>
+                    <td>
+                        {% for label, count in item.counts %}
+                            {{ count }} {{ label|lower }}{% if not forloop.last %} ·{% endif %}
+                        {% empty %}
+                            —
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No campaigns yet.</p>
+    {% endif %}
+</section>
+
+<section class="mt-10 space-y-4" aria-labelledby="exports-heading">
+    <h2 id="exports-heading" class="font-display text-2xl">Exports and QR codes</h2>
+    <ul class="flex flex-wrap gap-2">
+        <li><a href="{% url 'manage:export_rsvps' %}" class="btn btn-sm btn-outline">rsvps.csv</a></li>
+        <li><a href="{% url 'manage:export_seating' %}" class="btn btn-sm btn-outline">seating.csv</a></li>
+        <li><a href="{% url 'manage:export_save_the_date_links' %}" class="btn btn-sm btn-outline">save-the-date-links.csv</a></li>
+        <li><a href="{% url 'manage:export_invite_codes' %}" class="btn btn-sm btn-outline">invite-codes.csv</a></li>
+    </ul>
+    <p class="text-sm">Print a QR code from the browser: open the image, then print the page.</p>
+    <div class="grid gap-4 sm:grid-cols-2">
+        <figure class="card bg-base-200 rounded-box">
+            <div class="card-body items-center p-6">
+                <a href="{% url 'manage:qr' 'site' %}">
+                    <img src="{% url 'manage:qr' 'site' %}" alt="QR code for the wedding site" width="240" height="240" class="w-60 h-60 bg-white rounded-box" />
+                </a>
+                <figcaption class="text-center text-sm">
+                    Site
+                    {% if gate_enabled %}(unlocks with the password){% else %}(no password set yet){% endif %}
+                </figcaption>
+            </div>
+        </figure>
+        {% if has_album %}
+        <figure class="card bg-base-200 rounded-box">
+            <div class="card-body items-center p-6">
+                <a href="{% url 'manage:qr' 'album' %}">
+                    <img src="{% url 'manage:qr' 'album' %}" alt="QR code for the photo album" width="240" height="240" class="w-60 h-60 bg-white rounded-box" />
+                </a>
+                <figcaption class="text-center text-sm">Photo album</figcaption>
+            </div>
+        </figure>
+        {% else %}
+        <p class="text-sm self-center">Set the photo album link in Wedding Settings to get its QR code.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock content %}

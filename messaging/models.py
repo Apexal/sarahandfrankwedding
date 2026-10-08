@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from auditlog.models import AuditlogHistoryField
-from auditlog.registry import auditlog
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
@@ -16,7 +14,6 @@ from messaging.template_definitions import (
 class EmailTemplateVersion(TimestampedModel):
     """Stored HTML template content keyed by hardcoded template key."""
 
-    history = AuditlogHistoryField()
     template_key = models.SlugField(
         max_length=120,
         unique=True,
@@ -181,6 +178,3 @@ class OutboundEmail(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.to_email} ({self.status})"
-
-
-auditlog.register(EmailTemplateVersion)

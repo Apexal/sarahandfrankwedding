@@ -1,0 +1,51 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}Welcome · {{ wedding.couple_names }}{% endblock head_title %}
+{% block navbar %}
+<header class="flex justify-center px-5 pt-10 sm:px-16">
+    <a href="{% url 'pages:home' %}" class="script motion-fade px-3 text-[2.4444rem] leading-[1.1] text-ink no-underline">{{ wedding.couple_names }}</a>
+</header>
+{% endblock navbar %}
+{% block content %}
+<section class="glow flex flex-1 items-center justify-center px-5 pt-10 pb-20 sm:px-16">
+    <div class="flex w-full max-w-[520px] flex-col items-center gap-6 text-center">
+        {% include "pages/includes/ornament.html" with rule="96px" delay=".1s" %}
+        <h1 class="page-title motion-ink [animation-delay:300ms]">Welcome</h1>
+        <p class="motion-rise max-w-[420px] text-lede [animation-delay:800ms]">
+            The password is on your invitation.
+            {% if wedding.contact_email %}
+                Can't find it? Email us at
+                <a href="mailto:{{ wedding.contact_email }}" class="text-link">{{ wedding.contact_email }}</a>.
+            {% endif %}
+        </p>
+        <form method="post" action="{% url 'pages:welcome' %}" class="motion-rise mt-4 flex w-full flex-col gap-5 text-left [animation-delay:1s]">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+            <div class="flex flex-col gap-2">
+                <label for="id_password" class="label-caps">Password</label>
+                <input id="id_password"
+                       name="password"
+                       type="text"
+                       required
+                       autocomplete="off"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       autofocus
+                       class="field-input"
+                       {% if error %}aria-invalid="true" aria-describedby="password-error"{% endif %} />
+                {% if error %}
+                <p id="password-error" role="alert" class="field-error">{{ error }}</p>
+                {% endif %}
+            </div>
+            <button type="submit" class="button button-primary w-full">Enter</button>
+        </form>
+    </div>
+</section>
+{% endblock content %}
+{% block footer %}
+<footer class="mt-auto flex justify-center px-5 pb-9 text-center sm:px-16">
+    <p class="font-sans text-label-sm uppercase tracking-[0.26em] text-espresso">
+        <time datetime="{{ wedding.wedding_date|date:'Y-m-d' }}">{{ wedding.wedding_date|date:"F j, Y" }}</time>{% if wedding.wedding_city %} · {{ wedding.wedding_city }}{% endif %}
+    </p>
+</footer>
+{% endblock footer %}

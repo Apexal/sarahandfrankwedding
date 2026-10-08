@@ -1,11 +1,9 @@
 import json
 
-import posthog
-from auditlog.mixins import AuditlogHistoryAdminMixin
+import structlog
 from django import forms
 from django.contrib import admin, messages
 from django.http import JsonResponse
-from django.shortcuts import redirect
 from django.template import Context, Template, TemplateSyntaxError
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join, strip_tags
@@ -17,6 +15,8 @@ from messaging.template_definitions import (
     get_context_variable_names,
     get_template_definition,
 )
+
+logger = structlog.get_logger(__name__)
 
 
 class EmailTemplateVersionAdminForm(forms.ModelForm):
@@ -35,13 +35,8 @@ class EmailTemplateVersionAdminForm(forms.ModelForm):
 
 
 @admin.register(EmailTemplateVersion)
-class EmailTemplateVersionAdmin(AuditlogHistoryAdminMixin, admin.ModelAdmin):
+class EmailTemplateVersionAdmin(admin.ModelAdmin):
     form = EmailTemplateVersionAdminForm
-    show_auditlog_history_link = True
-
-    def history_view(self, request, object_id, extra_context=None):
-        return redirect(reverse("admin:messaging_emailtemplateversion_auditlog", args=[object_id]))
-
     change_form_template = "admin/messaging/emailtemplateversion/change_form.html"
     list_display = ("template_key", "template_name", "updated_at")
     search_fields = ("template_key", "subject_template", "html_body_template")
@@ -175,7 +170,7 @@ class OutboundEmailAdmin(admin.ModelAdmin):
             send_outbound_email_task.enqueue(outbound_email_id=outbound_email.pk)
             requeued_count += 1
         if requeued_count:
-            posthog.capture("outbound_emails_requeued", properties={"count": requeued_count})
+            logger.info("outbound_emails_requeued", count=requeued_count)
             self.message_user(request, f"Requeued {requeued_count} email(s).", messages.SUCCESS)
         if skipped_count:
             self.message_user(request, f"Skipped {skipped_count} already-sent email(s).", messages.WARNING)

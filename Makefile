@@ -7,9 +7,8 @@ setup: ## Initial project setup (install deps, copy env, migrate, seed, install 
 	uv sync
 	@test -f .env || cp .env.example .env && echo "Created .env from .env.example"
 	uv run ./manage.py migrate
-	uv run ./manage.py seed
 	uv run ./manage.py createcachetable
-	uv run ./manage.py sync_groups
+	uv run ./manage.py seed
 	mv .github/_workflows .github/workflows
 	mkdir -p static/css
 	cd static/css && curl -sL daisyui.com/fast | bash
@@ -42,7 +41,6 @@ migrate: ## Create and run migrations
 	uv run ./manage.py makemigrations
 	uv run ./manage.py migrate
 	uv run ./manage.py createcachetable
-	uv run ./manage.py sync_groups
 
-seed: ## Seed the database with sample data
+seed: ## Create the admin/admin superuser and the settings singletons
 	uv run ./manage.py seed

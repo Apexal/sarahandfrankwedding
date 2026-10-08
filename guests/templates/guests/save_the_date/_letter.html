@@ -1,0 +1,54 @@
+{% comment %}
+The letter, folded in thirds: the save-the-date panel on top (our photo across its left half
+with "Save the Date" written over the top of it and "for the marriage of" and our names beside
+it, level with the bottom of the photo and stacked below it on phones; then the date and the
+calendar link centred below), then _reply.html: either the address form (_form.html, laid across
+the two lower panels) or, once `submitted`, the thank-you. Rendered by page.html inside the stage; on its own at /save-the-date/[<code>/]letter/ it starts open,
+so its content can be worked on without sitting through the envelope.
+{% endcomment %}
+{% load static %}
+<div class="letter">
+    <div class="letter-sheet letter-panel-1">
+        <div>
+            <div class="letter-hero">
+                <div class="letter-photo">
+                    <picture>
+                        <source type="image/webp" sizes="(min-width: 1080px) 520px, (min-width: 768px) calc(50vw - 20px), calc(100vw - 40px)" srcset="{% static 'img/std-photo-640.webp' %} 640w, {% static 'img/std-photo-1040.webp' %} 1040w, {% static 'img/std-photo-1560.webp' %} 1560w, {% static 'img/std-photo-2080.webp' %} 2080w" />
+                        <img src="{% static 'img/std-photo-1040.jpg' %}"
+                             sizes="(min-width: 1080px) 520px, (min-width: 768px) calc(50vw - 20px), calc(100vw - 40px)"
+                             srcset="{% static 'img/std-photo-640.jpg' %} 640w, {% static 'img/std-photo-1040.jpg' %} 1040w, {% static 'img/std-photo-1560.jpg' %} 1560w, {% static 'img/std-photo-2080.jpg' %} 2080w"
+                             width="1040"
+                             height="1560"
+                             decoding="async"
+                             alt="Sarah and Frank smiling at each other in a diner booth, glasses of champagne in hand"
+                             class="block h-auto w-full" />
+                    </picture>
+                    {% include "guests/save_the_date/_lettering_title.html" %}
+                </div>
+                <div class="letter-hero-text">
+                    <h1 id="letter-title" tabindex="-1" class="w-[min(380px,100%)] focus:outline-none">
+                        <span class="sr-only">Save the Date for the marriage of Sarah Tedesco and Frank Matranga</span>
+                        {% include "guests/save_the_date/_lettering_names.html" %}
+                    </h1>
+                </div>
+            </div>
+            <div data-std-details class="mt-[clamp(28px,4vw,48px)] flex flex-col items-center gap-[clamp(16px,1.7vw,24px)] text-center">
+                {% include "pages/includes/ornament.html" with rule="clamp(56px, 8.3vw, 120px)" %}
+                <p class="date-caps leading-[1.3]">
+                    <time datetime="{{ wedding.wedding_date|date:'Y-m-d' }}">{{ wedding.wedding_date|date:"l," }}<br class="sm:hidden" /> {{ wedding.wedding_date|date:"F j, Y" }}</time>
+                </p>
+                {% if wedding.wedding_city %}
+                <p class="-mt-2 text-[clamp(20px,1.8vw,26px)] font-light italic text-espresso">{{ wedding.wedding_city }}</p>
+                {% endif %}
+                <a href="{% url 'save_the_date:ics' %}" class="button button-outline mt-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="16"></rect>
+                        <path d="M3 10h18M8 3v4M16 3v4"></path>
+                    </svg>
+                    Add to calendar
+                </a>
+            </div>
+        </div>
+    </div>
+    {% include "guests/save_the_date/_reply.html" %}
+</div>

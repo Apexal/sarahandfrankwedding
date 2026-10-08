@@ -1,8 +1,685 @@
 @import "tailwindcss";
+/* The save-the-date envelope and letter: geometry, states, and the eight-second timeline. */
+@import "./save-the-date.css";
 
 @source not "./tailwindcss";
 @source not "./daisyui{,*}.mjs";
 
+/* daisyUI without its built-in themes: the wedding theme below is the only one. */
 @plugin "./daisyui.mjs" {
-    themes: autumn --default;
+    themes: false;
+}
+
+/* The wedding theme. `daisyui-theme.mjs` is daisyUI's theme plugin, a vendored bundle that
+   `make setup` re-downloads, so the tokens are declared here rather than inside it.
+   daisyUI styles the staff-facing pages (dashboard, allauth); the guest-facing site uses the
+   component classes further down, built on the same palette: warm ivory ground, champagne
+   fields, gold rules, espresso and ink type. Gold is decorative only — text sits in espresso or
+   ink, so every word stays above 7:1 on ivory. */
+@plugin "./daisyui-theme.mjs" {
+    name: "wedding";
+    default: true;
+    color-scheme: light;
+
+    --color-base-100: oklch(98.8% 0.008 85);
+    --color-base-200: oklch(94% 0.025 82);
+    --color-base-300: oklch(86% 0.045 80);
+    --color-base-content: oklch(17% 0.012 50);
+
+    --color-primary: oklch(17% 0.012 50);
+    --color-primary-content: oklch(98.8% 0.008 85);
+    --color-secondary: oklch(33% 0.04 50);
+    --color-secondary-content: oklch(98.8% 0.008 85);
+    --color-accent: oklch(72% 0.085 78);
+    --color-accent-content: oklch(17% 0.012 50);
+    --color-neutral: oklch(33% 0.04 50);
+    --color-neutral-content: oklch(98.8% 0.008 85);
+
+    --color-info: oklch(42% 0.07 240);
+    --color-info-content: oklch(98.8% 0.008 85);
+    --color-success: oklch(42% 0.08 150);
+    --color-success-content: oklch(98.8% 0.008 85);
+    --color-warning: oklch(80% 0.11 80);
+    --color-warning-content: oklch(17% 0.012 50);
+    --color-error: oklch(42% 0.11 32);
+    --color-error-content: oklch(98.8% 0.008 85);
+
+    /* Square corners, hairline borders. */
+    --radius-selector: 0;
+    --radius-field: 0;
+    --radius-box: 0;
+    /* 0.25rem × 10 = 2.5rem = 45px buttons and inputs at the 18px root below. */
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+}
+
+@theme {
+    --color-ivory: #fdfbf6;
+    --color-champagne: #f6ecd9;
+    --color-gold: #c9a66b;
+    --color-espresso: #4a3728;
+    --color-ink: #1b1410;
+    --color-ink-soft: #3a2c22;
+    --color-paper: #fffdf9;
+    --color-garnet: #8b3a2a;
+
+    /* Pinyon Script for names and page titles, Cormorant Garamond for text, Jost for small
+       tracked labels. Self-hosted below: the CSP allows fonts from 'self' only. */
+    --font-script: "Pinyon Script", "Snell Roundhand", "Apple Chancery", cursive;
+    --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --font-sans: "Jost", "Futura", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+    --font-display: var(--font-serif);
+
+    /* The guest-facing type scale, in rem at the 18px root (px in the comments). Body copy is
+       23px and small print never goes below 20px. */
+    --text-label-sm: 0.7778rem; /* 14px */
+    --text-label: 0.8333rem; /* 15px */
+    --text-fine: 1.1111rem; /* 20px */
+    --text-small: 1.2222rem; /* 22px */
+    --text-body: 1.2778rem; /* 23px */
+    --text-lede: 1.3333rem; /* 24px */
+
+    --ease-out-soft: cubic-bezier(0.16, 0.84, 0.26, 1);
+    --ease-draw: cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url("../fonts/cormorant-garamond-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url("../fonts/cormorant-garamond-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-style: italic;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url("../fonts/cormorant-garamond-italic-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-style: italic;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url("../fonts/cormorant-garamond-italic-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Jost";
+    font-style: normal;
+    font-weight: 300 500;
+    font-display: swap;
+    src: url("../fonts/jost-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Jost";
+    font-style: normal;
+    font-weight: 300 500;
+    font-display: swap;
+    src: url("../fonts/jost-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Pinyon Script";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/pinyon-script-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Pinyon Script";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/pinyon-script-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@layer base {
+    /* Mobile-first, read at arm's length: 18px base type, comfortable line height. */
+    html {
+        font-size: 18px;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        font-family: var(--font-sans);
+        line-height: 1.6;
+        background-color: var(--color-base-100);
+        color: var(--color-base-content);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+        line-height: 1.2;
+        text-wrap: balance;
+    }
+
+    /* Keyboard focus must be visible on every interactive element. */
+    :focus-visible {
+        outline: 3px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    /* The guest-facing site (`body.site`, set by pages/base_public.html): Cormorant at 23px. */
+    .site {
+        font-family: var(--font-serif);
+        font-size: var(--text-body);
+        color: var(--color-ink);
+        background-color: var(--color-ivory);
+    }
+
+    .site h1,
+    .site h2,
+    .site h3 {
+        font-weight: 500;
+    }
+
+    .site ::placeholder {
+        color: var(--color-espresso);
+        opacity: 1;
+    }
+}
+
+@layer components {
+    /* ---- Type ---------------------------------------------------------------------------- */
+
+    /* Script names and page titles. Size it with a text-[…] utility. */
+    .script {
+        font-family: var(--font-script);
+        font-weight: 400;
+        line-height: 1.15;
+        text-wrap: balance;
+    }
+
+    .page-title {
+        font-family: var(--font-script);
+        font-weight: 400;
+        font-size: clamp(4rem, 3rem + 4vw, 5.7778rem); /* 72 → 104px */
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    /* Small tracked caps above a title, and section labels. */
+    .eyebrow {
+        font-family: var(--font-sans);
+        font-size: var(--text-label);
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: var(--color-espresso);
+    }
+
+    /* Dates: Cormorant caps. */
+    .date-caps {
+        font-family: var(--font-serif);
+        font-size: clamp(var(--text-small), 1rem + 1vw, 1.6667rem); /* 22 → 30px */
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        line-height: 1.4;
+    }
+
+    .heading {
+        font-family: var(--font-serif);
+        font-weight: 500;
+        font-size: clamp(1.7778rem, 1.4rem + 1vw, 2rem); /* 32 → 36px */
+        line-height: 1.2;
+    }
+
+    /* Form labels and other small tracked caps in ink. */
+    .label-caps {
+        display: block;
+        font-family: var(--font-sans);
+        font-size: var(--text-label);
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-ink);
+    }
+
+    .label-caps .optional {
+        letter-spacing: 0.1em;
+        text-transform: none;
+        color: var(--color-espresso);
+    }
+
+    /* ---- Navigation ---------------------------------------------------------------------- */
+
+    /* Tracked small caps; a gold underline draws in from the left on hover and marks the page. */
+    .nav-link {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.6667rem; /* 48px */
+        padding: 0 4px;
+        font-family: var(--font-sans);
+        font-size: var(--text-label);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--color-espresso);
+        text-decoration: none;
+        cursor: pointer;
+        transition: color 0.35s ease;
+    }
+
+    .nav-link::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        bottom: 8px;
+        height: 1px;
+        background: var(--color-gold);
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 0.45s var(--ease-draw);
+    }
+
+    .nav-link:hover,
+    .nav-link[aria-current="page"] {
+        color: var(--color-ink);
+    }
+
+    .nav-link:hover::after,
+    .nav-link[aria-current="page"]::after {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+
+    /* ---- Buttons and links --------------------------------------------------------------- */
+
+    /* Square, hairline, tracked caps. Primary is ink; outline fills to ink on hover. */
+    .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        min-height: 3.3333rem; /* 60px */
+        padding: 0.5rem 2.2222rem;
+        border: 1px solid var(--color-ink);
+        font-family: var(--font-sans);
+        font-size: var(--text-label);
+        font-weight: 400;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        line-height: 1.3;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+            background-color 0.4s ease,
+            color 0.4s ease,
+            transform 0.4s ease;
+    }
+
+    .button:hover {
+        transform: translateY(-1px);
+    }
+
+    .button-primary {
+        background: var(--color-ink);
+        color: var(--color-ivory);
+    }
+
+    .button-primary:hover {
+        background: var(--color-ink-soft);
+    }
+
+    .button-outline {
+        background: transparent;
+        color: var(--color-ink);
+    }
+
+    .button-outline:hover {
+        background: var(--color-ink);
+        color: var(--color-ivory);
+    }
+
+    @media (max-width: 640px) {
+        .button {
+            padding: 0.5rem 1.1111rem;
+            font-size: var(--text-label-sm);
+            letter-spacing: 0.2em;
+        }
+    }
+
+    /* Text links: gold underline at rest, an ink underline draws over it on hover. */
+    .text-link {
+        color: var(--color-ink);
+        text-decoration: none;
+        background-image: linear-gradient(var(--color-gold), var(--color-gold)), linear-gradient(var(--color-ink), var(--color-ink));
+        background-size:
+            100% 1px,
+            0% 1px;
+        background-position:
+            0 100%,
+            0 100%;
+        background-repeat: no-repeat;
+        padding-bottom: 2px;
+        cursor: pointer;
+        transition: background-size 0.4s var(--ease-draw);
+    }
+
+    .text-link:hover {
+        background-size:
+            100% 1px,
+            100% 1px;
+    }
+
+    /* ---- Fields -------------------------------------------------------------------------- */
+
+    .field-input {
+        display: block;
+        width: 100%;
+        min-height: 3.3333rem; /* 60px */
+        padding: 0 16px;
+        border: 1px solid var(--color-gold);
+        border-radius: 0;
+        background: var(--color-paper);
+        font-family: var(--font-serif);
+        font-size: var(--text-body);
+        color: var(--color-ink);
+        transition:
+            border-color 0.3s ease,
+            box-shadow 0.3s ease;
+    }
+
+    .field-input:hover {
+        border-color: var(--color-espresso);
+    }
+
+    .field-input:focus,
+    .field-input:focus-visible {
+        outline: 2px solid transparent;
+        border-color: var(--color-ink);
+        box-shadow: 0 0 0 3px rgb(201 166 107 / 0.32);
+    }
+
+    .field-input[aria-invalid="true"] {
+        border-color: var(--color-garnet);
+    }
+
+    select.field-input {
+        appearance: none;
+        padding-right: 44px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%231b1410' stroke-width='1.5'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+        background-position: right 16px center;
+        background-repeat: no-repeat;
+    }
+
+    textarea.field-input {
+        padding: 14px 16px;
+        min-height: 7.7778rem; /* 140px */
+        line-height: 1.5;
+    }
+
+    .field-help {
+        font-family: var(--font-serif);
+        font-size: var(--text-fine);
+        line-height: 1.5;
+        color: var(--color-espresso);
+    }
+
+    .field-error {
+        font-family: var(--font-serif);
+        font-size: var(--text-fine);
+        font-weight: 600;
+        color: var(--color-garnet);
+    }
+
+    /* Radio and checkbox answers: large tappable rows; the chosen one turns ink on champagne. */
+    .choice {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 3.3333rem;
+        padding: 0.5rem 18px;
+        border: 1px solid var(--color-gold);
+        background: var(--color-paper);
+        font-size: var(--text-body);
+        cursor: pointer;
+        transition:
+            border-color 0.3s ease,
+            background-color 0.3s ease;
+    }
+
+    .choice:hover {
+        border-color: var(--color-espresso);
+    }
+
+    .choice:has(:checked) {
+        border-color: var(--color-ink);
+        background: var(--color-champagne);
+    }
+
+    .choice-input {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        accent-color: var(--color-ink);
+    }
+
+    /* ---- Notices ------------------------------------------------------------------------- */
+
+    .notice {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 18px 20px;
+        border: 1px solid var(--color-gold);
+        background: var(--color-paper);
+        font-family: var(--font-serif);
+        font-size: var(--text-small);
+        line-height: 1.5;
+        text-align: left;
+    }
+
+    .notice-error {
+        border-color: var(--color-garnet);
+    }
+
+    /* ---- Ornament and frames ------------------------------------------------------------- */
+
+    /* Rule · diamond · rule. Set --rule on the wrapper for the rule length. */
+    .ornament {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+    }
+
+    .ornament-rule {
+        display: block;
+        width: var(--rule, 120px);
+        height: 1px;
+        background: var(--color-gold);
+    }
+
+    .ornament-diamond {
+        display: block;
+        width: 7px;
+        height: 7px;
+        border: 1px solid var(--color-gold);
+        transform: rotate(45deg);
+    }
+
+    /* "Or" divider between two forms. */
+    .rule-or {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .rule-or::before,
+    .rule-or::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--color-gold);
+    }
+
+    /* Double gold rule: the outer border here, the inner one an element so it can fade in. */
+    .frame {
+        position: relative;
+        border: 1px solid var(--color-gold);
+    }
+
+    .frame-inner {
+        position: absolute;
+        inset: 8px;
+        border: 1px solid var(--color-gold);
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* A paper card for grouped form sections. */
+    .sheet {
+        border: 1px solid var(--color-gold);
+        background: var(--color-paper);
+    }
+
+    /* The cream glow behind a hero. */
+    .glow {
+        background: radial-gradient(ellipse 60% 55% at 50% 40%, var(--color-champagne) 0%, rgb(253 251 246 / 0) 100%);
+    }
+
+    @media (max-width: 640px) {
+        .glow {
+            background: radial-gradient(ellipse 80% 50% at 50% 35%, var(--color-champagne) 0%, rgb(253 251 246 / 0) 100%);
+        }
+    }
+
+    /* ---- Motion -------------------------------------------------------------------------- */
+
+    /* One orchestrated reveal per page, top to bottom: the eyebrow rises, the script name
+       sharpens out of a soft blur, the gold rule draws outward from its diamond, then the rest
+       rises in turn. Stagger with an [animation-delay:…] utility. */
+    .motion-rise {
+        animation: rise 1.1s var(--ease-out-soft) both;
+    }
+
+    .motion-ink {
+        animation: ink 1.8s var(--ease-out-soft) both;
+    }
+
+    .motion-draw-l {
+        transform-origin: right;
+        animation: draw 1.2s var(--ease-draw) both;
+    }
+
+    .motion-draw-r {
+        transform-origin: left;
+        animation: draw 1.2s var(--ease-draw) both;
+    }
+
+    .motion-turn {
+        animation: turn 1s var(--ease-out-soft) both;
+    }
+
+    .motion-fade {
+        animation: fade 1.6s ease both;
+    }
+
+    .motion-breathe {
+        animation: breathe 5s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .motion-rise,
+        .motion-ink,
+        .motion-draw-l,
+        .motion-draw-r,
+        .motion-turn,
+        .motion-fade,
+        .motion-breathe {
+            animation: none;
+        }
+    }
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ink {
+    from {
+        opacity: 0;
+        filter: blur(10px);
+        transform: translateY(10px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes draw {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+
+@keyframes fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes turn {
+    from {
+        transform: rotate(45deg) scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(45deg) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes breathe {
+    0%,
+    100% {
+        opacity: 0.55;
+    }
+    50% {
+        opacity: 1;
+    }
 }

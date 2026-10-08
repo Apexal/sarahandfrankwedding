@@ -1,0 +1,1 @@
+Save the date: {{ couple_names }}, {{ wedding_date_display }}

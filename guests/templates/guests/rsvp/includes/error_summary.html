@@ -1,0 +1,15 @@
+{% comment %}The list of everything that needs fixing, above the form. Expects `form` (an RsvpForm).{% endcomment %}
+{% if form.errors %}
+<div role="alert" class="notice notice-error" id="error-summary" tabindex="-1">
+    <p class="font-semibold">A few things need your attention:</p>
+    <ul class="list-disc space-y-1 pl-5">
+        {% for item in form.error_summary %}
+        <li>
+            {% if item.id %}<a href="#{{ item.id }}" class="text-link">{% endif %}
+            {% if item.label %}{{ item.label }}: {% endif %}{{ item.errors|join:" " }}
+            {% if item.id %}</a>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}

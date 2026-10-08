@@ -1,0 +1,42 @@
+{% extends "pages/base_public.html" %}
+{% load static %}
+{% comment %}
+The save-the-date, shared by the personalized and generic entrances (PLAN.md section 10).
+`household` is set on the personalized page, `submitted` after a successful POST.
+
+It arrives as an envelope addressed to the household; opening it turns it over, lifts the
+seal, and unfolds the letter into the page (static/css/save-the-date.css has the states,
+static/js/save-the-date.js the clicks). The envelope is _envelope.html and the letter
+_letter.html. `opened` (set by the view after a submit, with form errors, or on the `letter/`
+URLs) renders the letter already open with no envelope; without JavaScript it is an
+ordinary page either way.
+{% endcomment %}
+{% block head_title %}Save the Date · {{ wedding.couple_names }}{% endblock head_title %}
+{% block extra_head %}
+<script src="{% static 'js/save-the-date.js' %}"></script>
+{% endblock extra_head %}
+{% block body_class %}{{ block.super }} std-page{% endblock body_class %}
+{% block navbar %}{% endblock navbar %}
+{% block content %}
+<section class="std-stage {% if opened %}is-done{% else %}is-sealed{% endif %}" data-envelope aria-labelledby="letter-title">
+    {% if not opened %}
+    {% include "guests/save_the_date/_envelope.html" %}
+    {% endif %}
+    {% include "guests/save_the_date/_letter.html" %}
+</section>
+{% if not opened %}
+{# Shown by save-the-date.js once the lettering is written, gone at the first scroll. #}
+<button type="button" class="std-scroll" data-scroll-cue hidden>
+    <span class="std-scroll-label">Scroll</span>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9.5l6 6 6-6" />
+    </svg>
+</button>
+{% endif %}
+<nav aria-label="Site" class="std-explore flex flex-col items-center gap-5 border-t border-gold px-6 pt-12 pb-14 sm:px-16">
+    <p class="eyebrow">Explore the site</p>
+    <ul class="flex flex-wrap justify-center gap-x-[clamp(20px,2.5vw,36px)] gap-y-1">
+        {% include "core/includes/nav_links.html" with current=request.resolver_match.view_name %}
+    </ul>
+</nav>
+{% endblock content %}

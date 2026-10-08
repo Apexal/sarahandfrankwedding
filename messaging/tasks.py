@@ -1,7 +1,6 @@
 import time
 from datetime import timedelta
 
-import posthog
 import structlog
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -34,17 +33,18 @@ def _send_outbound_email(*, outbound_email_id: int, fail_silently: bool = False)
     if outbound_email.status == OutboundEmail.DeliveryStatus.SENT:
         return
 
+    to_email, subject = _apply_recipient_allowlist(outbound_email)
     message = EmailMultiAlternatives(
-        subject=outbound_email.subject_rendered,
+        subject=subject,
         body=outbound_email.body_text_rendered,
         from_email=outbound_email.from_email or None,
-        to=[outbound_email.to_email],
+        to=[to_email],
         reply_to=[outbound_email.reply_to_email] if outbound_email.reply_to_email else None,
     )
     if outbound_email.body_html_rendered:
         message.attach_alternative(outbound_email.body_html_rendered, "text/html")
 
-    _props = {"template_key": outbound_email.template_key, "to_email": outbound_email.to_email}
+    _props = {"outbound_email_id": outbound_email.pk, "template_key": outbound_email.template_key}
 
     try:
         sent_count = message.send(fail_silently=fail_silently)
@@ -52,9 +52,7 @@ def _send_outbound_email(*, outbound_email_id: int, fail_silently: bool = False)
         outbound_email.status = OutboundEmail.DeliveryStatus.FAILED
         outbound_email.error_message = str(exc)
         outbound_email.save(update_fields=("status", "error_message", "updated_at"))
-        with posthog.new_context():
-            posthog.identify_context("system")
-            posthog.capture("email_failed", properties={**_props, "error": str(exc)})
+        logger.warning("email_failed", **_props, error_type=type(exc).__name__, error=str(exc))
         raise
 
     if sent_count > 0:
@@ -62,17 +60,36 @@ def _send_outbound_email(*, outbound_email_id: int, fail_silently: bool = False)
         outbound_email.sent_at = timezone.now()
         outbound_email.error_message = ""
         outbound_email.save(update_fields=("status", "sent_at", "error_message", "updated_at"))
-        with posthog.new_context():
-            posthog.identify_context("system")
-            posthog.capture("email_sent", properties=_props)
+        logger.info("email_sent", **_props)
         return
 
     outbound_email.status = OutboundEmail.DeliveryStatus.FAILED
     outbound_email.error_message = "Email backend returned zero messages sent."
     outbound_email.save(update_fields=("status", "error_message", "updated_at"))
-    with posthog.new_context():
-        posthog.identify_context("system")
-        posthog.capture("email_failed", properties={**_props, "error": outbound_email.error_message})
+    logger.warning("email_failed", **_props, error=outbound_email.error_message)
+
+
+def _apply_recipient_allowlist(outbound_email: OutboundEmail) -> tuple[str, str]:
+    """Staging safety net: return the (recipient, subject) to actually hand to the backend.
+
+    With `EMAIL_RECIPIENT_ALLOWLIST` set, anything addressed outside it is delivered to
+    the first allowed address with the original recipient in the subject, so a rehearsal
+    can never reach a real guest. The `OutboundEmail` row keeps the original recipient.
+    """
+    allowlist = settings.EMAIL_RECIPIENT_ALLOWLIST
+    to_email = outbound_email.to_email
+    subject = outbound_email.subject_rendered
+    if not allowlist or to_email.lower() in allowlist:
+        return to_email, subject
+    redirected_to = allowlist[0]
+    logger.info(
+        "email_recipient_redirected",
+        outbound_email_id=outbound_email.pk,
+        template_key=outbound_email.template_key,
+        original_to=to_email,
+        delivered_to=redirected_to,
+    )
+    return redirected_to, f"[to: {to_email}] {subject}"
 
 
 def _prune_outbound_emails():

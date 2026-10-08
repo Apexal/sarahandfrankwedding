@@ -1,0 +1,9 @@
+{% comment %}
+Rule · diamond · rule, drawn outward from the diamond. Optional `rule` (rule length, default
+120px) and `delay` (when the reveal starts, default 0s). Decorative, so hidden from assistive tech.
+{% endcomment %}
+<div class="ornament motion-rise" style="--rule: {{ rule|default:'120px' }}; animation-delay: {{ delay|default:'0s' }};" aria-hidden="true">
+    <span class="ornament-rule motion-draw-l" style="animation-delay: {{ delay|default:'0s' }};"></span>
+    <span class="ornament-diamond motion-turn" style="animation-delay: {{ delay|default:'0s' }};"></span>
+    <span class="ornament-rule motion-draw-r" style="animation-delay: {{ delay|default:'0s' }};"></span>
+</div>

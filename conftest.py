@@ -1,10 +1,9 @@
-import posthog
 import pytest
 from allauth.account.models import EmailAddress
 from django.core.cache import cache
 from django.test import Client
 
-from core.models import AppSettings, User
+from core.models import User
 
 TEST_PASSWORD = "testpass123"
 
@@ -12,20 +11,9 @@ TEST_PASSWORD = "testpass123"
 @pytest.fixture(autouse=True)
 def _isolate_cache():
     # LocMemCache outlives the per-test transaction, so cached state (e.g. the
-    # AppSettings singleton read by MaintenanceModeMiddleware) would otherwise
+    # WeddingSettings singleton read by SitePasswordMiddleware) would otherwise
     # leak between tests.
     cache.clear()
-
-
-def set_registration(*, allowed: bool) -> None:
-    app_settings = AppSettings.load()
-    app_settings.allow_registration = allowed
-    app_settings.save()
-
-
-@pytest.fixture
-def open_registration(db):
-    set_registration(allowed=True)
 
 
 def _create_verified_user(*, is_superuser=False, **kwargs):
@@ -75,11 +63,3 @@ def user_client(user):
     client = Client()
     client.force_login(user)
     return client
-
-
-@pytest.fixture
-def posthog_exceptions(monkeypatch):
-    """Capture posthog.capture_exception(...) calls as (exception, kwargs) tuples."""
-    calls = []
-    monkeypatch.setattr(posthog, "capture_exception", lambda exc, **kwargs: calls.append((exc, kwargs)))
-    return calls

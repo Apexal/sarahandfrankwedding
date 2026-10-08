@@ -1,0 +1,105 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}Seating · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="flex flex-wrap items-baseline justify-between gap-4">
+    <h1 class="font-display text-3xl sm:text-4xl">Seating</h1>
+    <nav aria-label="Seating tools" class="flex flex-wrap gap-2">
+        <a href="{% url 'manage:dashboard' %}" class="btn btn-sm btn-outline">Dashboard</a>
+        <a href="{{ assign_url }}" class="btn btn-sm btn-primary">Assign seats in the admin</a>
+        <a href="{% url 'manage:seating_print' %}" class="btn btn-sm btn-outline">Print view</a>
+        <a href="{% url 'manage:export_seating' %}" class="btn btn-sm btn-outline">seating.csv</a>
+    </nav>
+</div>
+{% if reception %}
+<p class="mt-4">
+    {{ reception.name }}: {{ seated_count }} seated, {{ attending_count }} attending, {{ capacity }} seat{{ capacity|pluralize }}
+    across {{ cards|length }} table{{ cards|length|pluralize }}.
+</p>
+{% else %}
+<div role="alert" class="alert alert-warning mt-4">
+    <span>No RSVP-required event exists yet, so nobody counts as attending.</span>
+</div>
+{% endif %}
+
+{% if warnings %}
+<section class="mt-6" aria-labelledby="warnings-heading">
+    <h2 id="warnings-heading" class="font-display text-2xl">Needs attention ({{ warnings|length }})</h2>
+    <ul class="mt-3 space-y-2">
+        {% for warning in warnings %}
+        <li>
+            <div role="alert" class="alert alert-warning">
+                <span>{{ warning.message }}</span>
+                <a href="{{ warning.url }}" class="link">Open in the admin</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<section class="mt-8" aria-labelledby="tables-heading">
+    <h2 id="tables-heading" class="sr-only">Tables</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+        {% for card in cards %}
+        <article class="card bg-base-200 rounded-box{% if card.over %} border border-error{% endif %}">
+            <div class="card-body p-5 space-y-3">
+                <h3 class="text-lg font-semibold flex justify-between gap-4">
+                    <a href="{% url 'admin:guests_table_change' card.table.pk %}" class="link">{{ card.table.name }}</a>
+                    <span{% if card.over %} class="text-error"{% endif %}>{{ card.used }} / {{ card.table.capacity }}</span>
+                </h3>
+                <progress class="progress {% if card.over %}progress-error{% else %}progress-primary{% endif %} w-full" value="{{ card.used }}" max="{{ card.bar_max }}" aria-label="{{ card.table.name }}: {{ card.used }} of {{ card.table.capacity }} seats"></progress>
+                {% for group in card.households %}
+                <div>
+                    <p class="text-sm font-semibold">{{ group.household.name }}</p>
+                    <ul class="ml-5 list-disc space-y-1">
+                        {% for seat in group.guests %}
+                        <li>
+                            <a href="{{ seat.admin_url }}" class="link">{{ seat.guest.display_name }}</a>
+                            {% if seat.meal %}<span class="text-sm opacity-80">· {{ seat.meal }}</span>{% endif %}
+                            {% if seat.status == "declined" %}
+                                <span class="badge badge-error badge-sm">Declined</span>
+                            {% elif seat.status == "no_rsvp" and reception %}
+                                <span class="badge badge-warning badge-sm">No RSVP</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% empty %}
+                <p class="text-sm opacity-80">Nobody seated yet.</p>
+                {% endfor %}
+                {% if card.table.notes %}<p class="text-sm whitespace-pre-line">{{ card.table.notes }}</p>{% endif %}
+            </div>
+        </article>
+        {% empty %}
+        <p>No tables yet. <a href="{% url 'admin:guests_table_add' %}" class="link">Add one in the admin.</a></p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="mt-10 space-y-3" aria-labelledby="unassigned-heading">
+    <h2 id="unassigned-heading" class="font-display text-2xl">Unassigned ({{ unassigned_count }})</h2>
+    {% if unassigned %}
+    <p class="text-sm">Attending {{ reception.name }} with no table yet.</p>
+    <div class="grid gap-3 sm:grid-cols-2">
+        {% for group in unassigned %}
+        <div class="card bg-base-200 rounded-box">
+            <div class="card-body p-4">
+                <p class="text-sm font-semibold">{{ group.household.name }}</p>
+                <ul class="ml-5 list-disc space-y-1">
+                    {% for seat in group.guests %}
+                    <li>
+                        <a href="{{ seat.admin_url }}" class="link">{{ seat.guest.display_name }}</a>
+                        {% if seat.meal %}<span class="text-sm opacity-80">· {{ seat.meal }}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Everyone attending has a seat.</p>
+    {% endif %}
+</section>
+{% endblock content %}

@@ -1,0 +1,19 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}FAQ · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+{% include "pages/includes/page_header.html" with eyebrow="Good to know" title="Questions & answers" %}
+<section class="mx-auto w-full max-w-[760px] px-5 pt-10 pb-24">
+    {% if items %}
+    <dl class="motion-rise flex flex-col [animation-delay:1s]">
+        {% for item in items %}
+        <div class="border-b border-gold py-8 first:pt-0 last:border-b-0">
+            <dt class="heading">{{ item.question }}</dt>
+            <dd class="ck-content mt-3">{{ item.answer|safe }}</dd>
+        </div>
+        {% endfor %}
+    </dl>
+    {% else %}
+    <p class="motion-rise text-center text-lede [animation-delay:1s]">Details to follow.</p>
+    {% endif %}
+</section>
+{% endblock content %}

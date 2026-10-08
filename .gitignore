@@ -24,3 +24,7 @@ db.sqlite3-wal
 
 received-webhooks/*.json
 .DS_Store
+
+# Local guest-data backups and media (real guest data; never commit)
+backups/
+media/

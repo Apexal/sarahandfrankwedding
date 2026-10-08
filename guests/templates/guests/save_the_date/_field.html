@@ -1,0 +1,20 @@
+{% comment %}
+One address field. Expects `field` (a BoundField). Django 5.2+ sets aria-invalid and
+aria-describedby on the widget, so the help text and error ids follow its
+`<auto_id>_helptext` / `<auto_id>_error` naming. The label grows so that, side by side in a
+grid row, the inputs line up even when one label wraps onto a second line.
+{% endcomment %}
+<div class="flex flex-col gap-2">
+    <label for="{{ field.id_for_label }}" class="label-caps grow">
+        {{ field.label }}{% if not field.field.required %} <span class="optional">(optional)</span>{% endif %}
+    </label>
+    {{ field }}
+    {% if field.help_text %}
+    <p id="{{ field.auto_id }}_helptext" class="field-help">{{ field.help_text }}</p>
+    {% endif %}
+    {% if field.errors %}
+    <p id="{{ field.auto_id }}_error" class="field-error">
+        {% for error in field.errors %}{{ error }}{% if not forloop.last %} {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+</div>

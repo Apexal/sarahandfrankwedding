@@ -22,21 +22,17 @@ class SiteIdentity:
     from myapp.fly.dev!" — and it dereferences the request, so it raises
     outright when there isn't one (a management command, a background task).
 
-    `name` reads `AppSettings.site_name`, the same source `core/api/__init__.py`
-    passes to the verification email, so one deployment can't sign its mail two
-    different ways. Note that leaves it at the "My App" default until someone
-    sets it in the admin — `setup_project.sh` rewrites `COMPANY`, not this.
-    `domain` is derived from `APP_BASE_URL` rather than `request.get_host()` so
-    a verification mail says the same thing however it was triggered — the host
+    `name` reads `WeddingSettings.couple_names`, so the mail is signed the way the
+    site is. `domain` is derived from `APP_BASE_URL` rather than `request.get_host()`
+    so a verification mail says the same thing however it was triggered — the host
     a request happens to arrive on is not the address to print in an email.
     """
 
     def __init__(self):
-        # Lazy, like `is_open_for_signup` below: this module is imported while
-        # the app registry is still populating.
-        from core.models import AppSettings
+        # Lazy: this module is imported while the app registry is still populating.
+        from pages.models import WeddingSettings
 
-        self.name = AppSettings.load().site_name
+        self.name = WeddingSettings.load().couple_names
         self.domain = urlsplit(settings.APP_BASE_URL).netloc or settings.APP_BASE_URL
 
     def __str__(self):
@@ -45,9 +41,8 @@ class SiteIdentity:
 
 class CoreAccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        from core.models import AppSettings
-
-        return AppSettings.load().allow_registration
+        # No guest accounts, ever: the only users are the two of us, created by seed/createsuperuser.
+        return False
 
     def send_mail(self, template_prefix, email, context):
         """Route allauth transactional email through the messaging pipeline.

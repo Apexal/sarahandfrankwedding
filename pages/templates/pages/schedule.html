@@ -1,0 +1,45 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}Schedule · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+{% include "pages/includes/page_header.html" with eyebrow="The weekend" title="Schedule" subtitle=subtitle %}
+<section class="flex justify-center px-5 pt-12 pb-20 sm:px-16 sm:pt-16 sm:pb-24">
+    {% if events %}
+    <ol class="w-full max-w-[960px]">
+        {% for event in events %}
+        <li class="motion-rise grid grid-cols-[7px_minmax(0,1fr)] gap-x-5 pb-12 sm:grid-cols-[200px_40px_minmax(0,1fr)] sm:gap-x-6"
+            style="animation-delay: calc(0.7s + {{ forloop.counter0 }} * 0.2s);">
+            <p class="hidden pt-3 text-right text-lede uppercase leading-normal tracking-[0.1em] sm:block">
+                {% include "pages/includes/event_time.html" %}
+            </p>
+            <div class="relative pt-[18px] sm:pt-[18px]" aria-hidden="true">
+                {% if not forloop.last %}
+                <span class="absolute top-[18px] -bottom-[66px] left-[3px] w-px bg-gold"></span>
+                {% endif %}
+                <span class="relative block h-[7px] w-[7px] rotate-45 border border-gold bg-ivory"></span>
+            </div>
+            <div class="flex flex-col gap-2.5 sm:pl-1">
+                <p class="text-small uppercase leading-normal tracking-[0.1em] sm:hidden">
+                    {% include "pages/includes/event_time.html" %}
+                </p>
+                <h2 class="heading">{{ event.name }}</h2>
+                {% if event.venue_name %}
+                <p class="mt-1 font-sans text-label uppercase tracking-[0.22em]">{{ event.venue_name }}</p>
+                {% endif %}
+                {% if event.address %}
+                <p class="whitespace-pre-line leading-[1.55] text-espresso">{{ event.address }}</p>
+                {% endif %}
+                {% if event.dress_code %}
+                <p class="leading-[1.55]"><span class="font-semibold">Dress code:</span> {{ event.dress_code }}</p>
+                {% endif %}
+                {% if event.description %}
+                <div class="ck-content">{{ event.description|safe }}</div>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <p class="text-center text-lede">Details to follow.</p>
+    {% endif %}
+</section>
+{% endblock content %}

@@ -1,0 +1,50 @@
+{% comment %}
+The envelope: the card that arrives address side up and turns over, the working layers
+(back, pocket, flap, seal) that hold the letter while it is drawn out, and the click
+target. Rendered by page.html only while the stage starts sealed; expects `household`
+(blank on the generic page).
+{% endcomment %}
+{# The working envelope: separate layers around the letter, shown the instant the turn completes. #}
+<div class="env-part env-back" aria-hidden="true"><div class="env-inside"></div></div>
+<div class="env-part env-pocket" aria-hidden="true"></div>
+<div class="env-part env-flapwrap" aria-hidden="true">
+    <div class="env-flap"></div>
+    <div class="env-seal">{{ wedding.monogram }}</div>
+</div>
+{# The envelope as it arrives, address side up. #}
+<div class="env-scene" aria-hidden="true">
+    <div class="env-flip">
+        <div class="env-face env-face-front">
+            <p class="env-from">Sarah and Frank</p>
+            <div class="env-stamp">
+                <div class="env-stamp-inner">
+                    <span class="env-stamp-monogram">{{ wedding.monogram }}</span>
+                    <span class="env-stamp-year">{{ wedding.wedding_date|date:"Y" }}</span>
+                </div>
+            </div>
+            <div class="env-address">
+                {% if household %}
+                <p class="env-address-names">See you soon?</p>
+                {% if household.address_line1 %}
+                <p class="env-address-lines">
+                    {{ household.address_line1 }}{% if household.address_line2 %}, {{ household.address_line2 }}{% endif %}<br />
+                    {{ household.city }}{% if household.state %}, {{ household.state }}{% endif %} {{ household.postal_code }}
+                </p>
+                {% endif %}
+                {% else %}
+                <p class="env-address-names">Our family &amp; friends</p>
+                {% endif %}
+                <p class="env-tap">Tap to open</p>
+            </div>
+        </div>
+        <div class="env-face env-face-back">
+            <div class="env-inside"></div>
+            <div class="env-pocket-face"></div>
+            <div class="env-flap-shade">
+                <div class="env-flap-face"></div>
+            </div>
+            <div class="env-seal env-seal-face">{{ wedding.monogram }}</div>
+        </div>
+    </div>
+</div>
+<button type="button" class="env-hit" aria-label="Open the envelope"></button>

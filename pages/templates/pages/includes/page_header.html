@@ -1,0 +1,12 @@
+{% comment %}
+The top of an inner page: eyebrow, script title, optional subtitle, ornament, revealed in that
+order. Expects `title`; `eyebrow` and `subtitle` are optional.
+{% endcomment %}
+<header class="flex flex-col items-center px-5 pt-14 text-center sm:px-16 sm:pt-20">
+    {% if eyebrow %}<p class="eyebrow motion-rise [animation-delay:100ms]">{{ eyebrow }}</p>{% endif %}
+    <h1 class="page-title motion-ink [animation-delay:300ms]">{{ title }}</h1>
+    {% if subtitle %}
+    <p class="motion-rise mt-2 text-lede uppercase tracking-[0.12em] text-espresso [animation-delay:700ms]">{{ subtitle }}</p>
+    {% endif %}
+    <div class="mt-7">{% include "pages/includes/ornament.html" with rule="96px" delay=".85s" %}</div>
+</header>

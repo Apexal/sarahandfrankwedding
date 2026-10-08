@@ -1,0 +1,1 @@
+RSVP received: {{ household_name }}

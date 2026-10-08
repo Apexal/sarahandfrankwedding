@@ -1,0 +1,37 @@
+{% comment %}
+One form control with its label, help text, and errors. Radios and checkboxes become
+large tappable rows inside a fieldset (its legend in Cormorant, since questions can be
+long); everything else is a tracked-caps label over a field. Expects `field` (a BoundField).
+{% endcomment %}
+{% with input_type=field.field.widget.input_type %}
+{% if input_type == "radio" or input_type == "checkbox" %}
+<fieldset class="flex flex-col gap-3" {% if field.help_text %}aria-describedby="{{ field.auto_id }}_helptext"{% endif %}>
+    <legend class="pb-3 text-lede font-medium leading-snug">
+        {{ field.label }}{% if not field.field.required %} <span class="font-normal text-espresso">(optional)</span>{% endif %}
+    </legend>
+    {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="field-help -mt-1">{{ field.help_text }}</p>{% endif %}
+    <div class="grid gap-3 sm:grid-cols-2">
+        {% for option in field %}
+        <label for="{{ option.id_for_label }}" class="choice">
+            {{ option.tag }}
+            <span>{{ option.choice_label }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    {% for error in field.errors %}
+    <p role="alert" class="field-error">{{ error }}</p>
+    {% endfor %}
+</fieldset>
+{% else %}
+<div class="flex flex-col gap-2">
+    <label for="{{ field.id_for_label }}" class="label-caps">
+        {{ field.label }}{% if not field.field.required %} <span class="optional">(optional)</span>{% endif %}
+    </label>
+    {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="field-help">{{ field.help_text }}</p>{% endif %}
+    {{ field }}
+    {% for error in field.errors %}
+    <p role="alert" class="field-error">{{ error }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}

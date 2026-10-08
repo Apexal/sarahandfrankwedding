@@ -1,13 +1,10 @@
 from datetime import timedelta
-from zoneinfo import ZoneInfo
 
 import pytest
 from allauth.mfa.models import Authenticator
-from auditlog import get_logentry_model
 from django.contrib import admin
-from django.contrib.auth.models import AnonymousUser, Group, Permission
+from django.contrib.auth.models import Permission
 from django.contrib.sessions.models import Session
-from django.core.management import CommandError, call_command
 from django.db import connection
 from django.http import HttpResponse
 from django.template import Context, Template
@@ -15,15 +12,13 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from core import roles
 from core.account_adapter import CoreAccountAdapter, SiteIdentity
 from core.admin import UserAdmin
-from core.audit import record_object_access
-from core.constants import SESSION_IMPERSONATOR_USER_ID_KEY, get_timezone_choices
-from core.middleware import TrustedClientIPMiddleware, UserTimezoneMiddleware
-from core.models import AppSettings, User
-from core.tasks import _clear_expired_sessions, _prune_audit_log
+from core.middleware import TrustedClientIPMiddleware
+from core.models import User
+from core.tasks import _clear_expired_sessions
 from messaging.models import OutboundEmail
+from pages.models import WeddingSettings
 
 
 class TestTrustedClientIPMiddleware:
@@ -56,16 +51,11 @@ class TestAnonymousAccess:
     def test_home_page_loads(self, client):
         assert client.get("/").status_code == 200
 
-    def test_profile_requires_login(self, client):
-        response = client.get("/profile/")
-        assert response.status_code == 302
-        assert "/accounts/login/" in response.url
-
     def test_robots_txt(self, client):
         response = client.get("/robots.txt")
         assert response.status_code == 200
-        assert response["Content-Type"] == "text/plain"
-        assert "Disallow: /admin/" in response.content.decode()
+        # A private site: everything is disallowed (see core/test_hygiene.py for the meta tag).
+        assert "Disallow: /" in response.content.decode().splitlines()
 
     def test_favicon_returns_204(self, client):
         assert client.get("/favicon.ico").status_code == 204
@@ -78,10 +68,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "database": "connected"}
 
-    def test_db_error_is_not_echoed_to_caller(self, client, monkeypatch, posthog_exceptions):
-        # Prime the AppSettings cache first: MaintenanceModeMiddleware would
-        # otherwise query the DB (through ensure_connection) on this request.
-        AppSettings.load()
+    def test_db_error_is_not_echoed_to_caller(self, client, monkeypatch):
         monkeypatch.setattr(
             connection, "ensure_connection", lambda: (_ for _ in ()).throw(RuntimeError("secret /data/db path"))
         )
@@ -91,61 +78,6 @@ class TestHealthEndpoint:
         assert response.status_code == 503
         assert response.json() == {"status": "error", "database": "unavailable"}
         assert "secret" not in response.content.decode()
-        [(_, kwargs)] = posthog_exceptions
-        assert kwargs["properties"]["handler"] == "health"
-
-
-@pytest.mark.django_db
-class TestMaintenanceMode:
-    @pytest.fixture(autouse=True)
-    def _maintenance_on(self, db):
-        app_settings = AppSettings.load()
-        app_settings.maintenance_mode = True
-        app_settings.save()
-
-    def test_non_staff_sees_503(self, client):
-        assert client.get("/").status_code == 503
-
-    def test_health_is_whitelisted(self, client):
-        assert client.get("/health/").status_code == 200
-
-    def test_staff_passes_through(self, admin_client):
-        assert admin_client.get("/").status_code == 200
-
-
-class TestTimezoneChoices:
-    def test_all_choices_are_valid_iana_zones(self):
-        for _group, choices in get_timezone_choices():
-            for tz, _label in choices:
-                ZoneInfo(tz)  # raises if not a real zone
-
-
-@pytest.mark.django_db
-class TestUserTimezoneMiddleware:
-    def _active_tz_seen_by_view(self, request_user):
-        seen = {}
-
-        def view(request):
-            seen["tz"] = dj_timezone.get_current_timezone_name()
-            return HttpResponse()
-
-        request = RequestFactory().get("/")
-        request.user = request_user
-        UserTimezoneMiddleware(view)(request)
-        return seen["tz"]
-
-    def test_activates_user_timezone(self, user):
-        user.time_zone = "America/Los_Angeles"
-        user.save()
-        assert self._active_tz_seen_by_view(user) == "America/Los_Angeles"
-
-    def test_falls_back_for_anonymous(self):
-        with override_settings(TIME_ZONE="America/New_York"):
-            assert self._active_tz_seen_by_view(AnonymousUser()) == "America/New_York"
-
-    def test_the_fallback_tracks_the_project_timezone(self):
-        with override_settings(TIME_ZONE="Asia/Tokyo"):
-            assert self._active_tz_seen_by_view(AnonymousUser()) == "Asia/Tokyo"
 
 
 @pytest.mark.django_db
@@ -170,7 +102,7 @@ class TestRequireStaffMfa:
         assert response.url == reverse("mfa_index")
 
     def test_non_staff_is_not_redirected(self, user_client):
-        assert user_client.get("/profile/").status_code == 200
+        assert user_client.get("/").status_code == 200
 
     def test_mfa_setup_pages_are_exempt(self, admin_client):
         assert admin_client.get(reverse("mfa_index")).status_code == 200
@@ -216,96 +148,7 @@ class TestUserAdminHardening:
 
 
 @pytest.mark.django_db
-class TestImpersonation:
-    def _impersonate(self, admin_client, target):
-        return admin_client.post(reverse("admin:core_user_impersonate", args=[target.pk]))
-
-    def test_superuser_can_impersonate_regular_user(self, admin_client, admin_user, user):
-        response = self._impersonate(admin_client, user)
-        assert response.status_code == 302
-        assert admin_client.session[SESSION_IMPERSONATOR_USER_ID_KEY] == admin_user.pk
-
-    def test_cannot_impersonate_inactive_user(self, admin_client, user):
-        user.is_active = False
-        user.save()
-        self._impersonate(admin_client, user)
-        assert SESSION_IMPERSONATOR_USER_ID_KEY not in admin_client.session
-
-    def test_cannot_impersonate_staff(self, admin_client, staff_user):
-        self._impersonate(admin_client, staff_user)
-        assert SESSION_IMPERSONATOR_USER_ID_KEY not in admin_client.session
-
-
-@pytest.mark.django_db
-class TestImpersonationAuditTrail:
-    """Audited changes made while impersonating are attributed to the impersonator.
-
-    Exercises the full middleware stack: ImpersonationAuditMiddleware must run
-    after AuditlogMiddleware so its actor override wins.
-    """
-
-    def test_audit_actor_is_rewritten_to_impersonator(self, admin_client, admin_user, user):
-        admin_client.post(reverse("admin:core_user_impersonate", args=[user.pk]))
-        admin_client.post("/profile/", {"user-first_name": "Changed"})
-
-        user.refresh_from_db()
-        assert user.first_name == "Changed"
-        log_entry_model = get_logentry_model()
-        entry = log_entry_model.objects.get(object_pk=str(user.pk), action=log_entry_model.Action.UPDATE)
-        assert entry.actor == admin_user
-        assert entry.additional_data["impersonation"] is True
-        assert entry.additional_data["impersonated_user_id"] == user.pk
-
-
-@pytest.mark.django_db
-class TestStopImpersonation:
-    def _start_impersonating(self, admin_client, target):
-        admin_client.post(reverse("admin:core_user_impersonate", args=[target.pk]))
-
-    def test_restores_original_superuser_session(self, admin_client, admin_user, user):
-        self._start_impersonating(admin_client, user)
-
-        response = admin_client.post(reverse("core:stop_impersonation"))
-
-        assert response.status_code == 302
-        assert response.url == reverse("admin:index")
-        assert admin_client.session["_auth_user_id"] == str(admin_user.pk)
-        assert SESSION_IMPERSONATOR_USER_ID_KEY not in admin_client.session
-
-    def test_noop_when_not_impersonating(self, user_client, user):
-        response = user_client.post(reverse("core:stop_impersonation"))
-
-        assert response.status_code == 302
-        assert response.url == reverse("core:home")
-        assert user_client.session["_auth_user_id"] == str(user.pk)  # still themselves
-
-    def test_demoted_impersonator_is_not_restored(self, admin_client, admin_user, user):
-        self._start_impersonating(admin_client, user)
-        admin_user.is_superuser = False
-        admin_user.save()
-
-        admin_client.post(reverse("core:stop_impersonation"))
-
-        # Session stays as the impersonated user rather than restoring a non-superuser.
-        assert admin_client.session["_auth_user_id"] == str(user.pk)
-
-    def test_requires_post(self, user_client):
-        assert user_client.get(reverse("core:stop_impersonation")).status_code == 405
-
-
-@pytest.mark.django_db
 class TestHousekeepingTasks:
-    def test_prune_audit_log_deletes_only_old_entries(self, user, admin_user):
-        old_entry = record_object_access(accessed_object=user, actor=admin_user)
-        recent_entry = record_object_access(accessed_object=admin_user, actor=admin_user)
-        log_entry_model = get_logentry_model()
-        log_entry_model.objects.filter(pk=old_entry.pk).update(timestamp=dj_timezone.now() - timedelta(days=400))
-
-        _prune_audit_log()
-
-        assert not log_entry_model.objects.filter(pk=old_entry.pk).exists()
-        assert log_entry_model.objects.filter(pk=recent_entry.pk).exists()
-
     def test_clear_expired_sessions(self, db):
         Session.objects.create(
             session_key="expired", session_data="x", expire_date=dj_timezone.now() - timedelta(days=1)
@@ -338,15 +181,15 @@ class TestAllauthEmailContext:
         )
         return OutboundEmail.objects.latest("pk")
 
-    def test_the_site_name_is_rendered_not_a_blank(self):
-        app_settings = AppSettings.load()
-        app_settings.site_name = "Acme Health"
-        app_settings.save()
+    def test_the_couple_names_are_rendered_not_a_blank(self):
+        wedding = WeddingSettings.load()
+        wedding.couple_names = "Sarah & Frank"
+        wedding.save()
 
         email = self._send()
 
-        assert "Hello from Acme Health!" in email.body_text_rendered
-        assert "Thank you for using Acme Health!" in email.body_text_rendered
+        assert "Hello from Sarah & Frank!" in email.body_text_rendered
+        assert "Thank you for using Sarah & Frank!" in email.body_text_rendered
 
     @override_settings(APP_BASE_URL="https://app.example.com")
     def test_the_domain_comes_from_app_base_url_without_the_scheme(self):
@@ -362,7 +205,7 @@ class TestAllauthEmailContext:
 
         assert allauth_context.request is None
 
-        assert AppSettings.load().site_name in self._send().body_text_rendered
+        assert WeddingSettings.load().couple_names in self._send().body_text_rendered
 
     def test_the_subject_is_not_prefixed_with_the_deployment_host(self):
         """Unset, ACCOUNT_EMAIL_SUBJECT_PREFIX makes allauth build the prefix
@@ -373,7 +216,7 @@ class TestAllauthEmailContext:
         """The seeded keys are defaults, mirroring allauth's ctx.update(context)."""
         email = self._send(context={"current_site": SiteIdentity()})
 
-        assert AppSettings.load().site_name in email.body_text_rendered
+        assert WeddingSettings.load().couple_names in email.body_text_rendered
 
 
 @pytest.mark.django_db
@@ -391,79 +234,25 @@ class TestEmailLogin:
         assert response.status_code == 302
         assert "_auth_user_id" not in client.session  # blocked pending verification
 
-    def test_signup_closed_by_default(self, client):
+    def test_signup_is_always_closed(self, client):
         response = client.get("/accounts/signup/")
         assert "account/signup_closed.html" in [t.name for t in response.templates]
 
 
 @pytest.mark.django_db
 class TestCsrfFailureView:
-    """CSRF_FAILURE_VIEW serves a friendly 403 and reports the reason to PostHog."""
+    """CSRF_FAILURE_VIEW serves a friendly 403 and logs the reason."""
 
-    URL = "/profile/"  # any non-exempt POST route; CSRF runs before the view's login_required
+    URL = "/"  # any non-exempt route: CsrfViewMiddleware rejects the POST before the view runs
 
     def _post_without_token(self):
-        return Client(enforce_csrf_checks=True).post(self.URL, {"user-first_name": "Nope"})
+        return Client(enforce_csrf_checks=True).post(self.URL, {"anything": "Nope"})
 
     def test_renders_custom_page_with_403(self):
         response = self._post_without_token()
         assert response.status_code == 403
         assert "core/csrf_failure.html" in [t.name for t in response.templates]
         assert "Your session expired" in response.content.decode()
-
-    def test_reports_reason_to_posthog(self, posthog_exceptions):
-        self._post_without_token()
-
-        [(_, kwargs)] = posthog_exceptions
-        assert kwargs["distinct_id"] == "csrf_failure"
-        properties = kwargs["properties"]
-        assert properties["handler"] == "csrf_failure"
-        assert properties["error_type"] == "CsrfFailure"
-        assert properties["path"] == self.URL
-        assert properties["method"] == "POST"
-        assert properties["reason"]  # Django always supplies a cause
-
-
-@pytest.mark.django_db
-class TestSyncGroups:
-    """`sync_groups` makes the database match core.roles.GROUP_PERMISSIONS exactly."""
-
-    @staticmethod
-    def _group_perms(name):
-        group = Group.objects.get(name=name)
-        return sorted(f"{p.content_type.app_label}.{p.codename}" for p in group.permissions.all())
-
-    def test_creates_declared_groups_with_exact_permissions(self, monkeypatch):
-        monkeypatch.setattr(roles, "GROUP_PERMISSIONS", {"Support": ["core.view_user", "core.change_user"]})
-
-        call_command("sync_groups")
-
-        assert self._group_perms("Support") == ["core.change_user", "core.view_user"]
-
-    def test_resync_removes_permissions_no_longer_declared(self, monkeypatch):
-        monkeypatch.setattr(roles, "GROUP_PERMISSIONS", {"Support": ["core.view_user", "core.change_user"]})
-        call_command("sync_groups")
-
-        monkeypatch.setattr(roles, "GROUP_PERMISSIONS", {"Support": ["core.view_user"]})
-        call_command("sync_groups")
-
-        assert self._group_perms("Support") == ["core.view_user"]
-
-    def test_unknown_permission_fails_loudly(self, monkeypatch):
-        monkeypatch.setattr(roles, "GROUP_PERMISSIONS", {"Support": ["core.does_not_exist"]})
-
-        with pytest.raises(CommandError, match="core.does_not_exist"):
-            call_command("sync_groups")
-
-    def test_undeclared_group_is_kept_unless_pruned(self, monkeypatch):
-        monkeypatch.setattr(roles, "GROUP_PERMISSIONS", {})
-        Group.objects.create(name="Legacy")
-
-        call_command("sync_groups")
-        assert Group.objects.filter(name="Legacy").exists()
-
-        call_command("sync_groups", "--prune")
-        assert not Group.objects.filter(name="Legacy").exists()
 
 
 class TestCkeditorMedia:

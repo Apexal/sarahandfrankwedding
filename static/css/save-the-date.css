@@ -1,0 +1,918 @@
+/* The save-the-date envelope (guests/templates/guests/save_the_date/page.html, driven by
+   static/js/save-the-date.js).
+
+   The stage is in one of three states:
+   - `is-sealed`: the envelope rises in address-side up and waits for a click.
+   - `is-open`: it turns over, the seal lifts, the flap opens, and a letter folded in thirds
+     slides out, unfolds, and grows to full size (1.2s turn, then a 7.2s timeline).
+   - `is-done`: the letter as an ordinary page. The server renders this after a submit or with
+     form errors, and it is also what anyone without JavaScript sees: the envelope rules below
+     only apply under `html.js`, which the script sets before the body is parsed.
+   Opening also adds `is-writing`, which stays on and writes out the lettering (see the end).
+   The script measures the letter's panels into --p1/--p2/--p3 before opening, so the switch
+   from the folded layout to the static one at the end does not jump. */
+
+@layer components {
+    .std-stage {
+        --env-w: min(600px, 100vw - 40px);
+        --env-h: calc(var(--env-w) * 0.64);
+        --env-top: 270px;
+        --env-drop: 280px;
+        --seal: clamp(44px, 11.3vw, 68px);
+        --paper-w: min(1040px, 100vw - 40px);
+        --p1: 680px;
+        --p2: 680px;
+        --p3: 680px;
+        --letter-offset: 30px;
+        --letter-scale: 0.5;
+        --letter-in: calc(var(--env-top) - 40px + var(--letter-offset));
+        /* Where the envelope's bottom edge falls on the shrunk letter, in the letter's own (unscaled)
+           coordinates: the letter's top sits --letter-offset below the envelope's. A tall first panel
+           would otherwise hang out below the envelope until it is drawn out, so std-letter clips the
+           letter there while it is inside. */
+        --letter-clip: calc((var(--env-h) - var(--letter-offset)) / var(--letter-scale));
+        --sheet-shadow: 0 16px 48px -12px rgb(0 0 0 / 0.55);
+
+        position: relative;
+        padding: 40px 20px 72px;
+    }
+
+    /* The page behind the envelope (`body.std-page`, set by page.html): a deep espresso with fine white
+       pinstripes, and the "Explore the site" links lightened to read on it. */
+    .std-page {
+        background-color: color-mix(in oklab, var(--color-espresso) 82%, #000);
+        background-image: repeating-linear-gradient(90deg, transparent 0 8px, rgb(255 255 255 / 0.28) 8px 9px);
+    }
+
+    .std-explore .eyebrow,
+    .std-explore .nav-link {
+        color: var(--color-ivory);
+    }
+
+    .std-explore .nav-link:hover,
+    .std-explore .nav-link[aria-current="page"] {
+        color: #fff;
+    }
+
+    @media (max-width: 640px) {
+        .std-stage {
+            --env-top: 200px;
+            --env-drop: 200px;
+            --p1: 440px;
+            --letter-offset: 12px;
+            --letter-scale: 0.45;
+        }
+    }
+
+    /* ---- The letter, static (is-done, and no JavaScript) --------------------------------- */
+
+    .std-stage .env-part,
+    .std-stage .env-scene,
+    .std-stage .env-hit {
+        display: none;
+    }
+
+    .letter {
+        position: relative;
+        z-index: 2;
+        width: var(--paper-w);
+        margin: 0 auto;
+        box-shadow: var(--sheet-shadow);
+    }
+
+    .letter-sheet {
+        box-sizing: border-box;
+        background: #fff;
+        border-left: 1px solid var(--color-espresso);
+        border-right: 1px solid var(--color-espresso);
+    }
+
+    .letter-panel-1 {
+        --panel-x: clamp(24px, 4.4vw, 64px);
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: var(--p1);
+        padding: 0 var(--panel-x) clamp(32px, 5vw, 72px);
+        border-top: 1px solid var(--color-espresso);
+    }
+
+    /* The top of the first panel runs edge to edge: the photo, under "Save the Date", on the left
+       half and "for the marriage of" and our names on the right, sitting on the photo's bottom
+       edge (stacked below it on phones). */
+    .letter-hero {
+        display: grid;
+        margin-inline: calc(var(--panel-x) * -1);
+    }
+
+    .letter-photo {
+        position: relative;
+    }
+
+    .letter-hero-text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding: clamp(28px, 4vw, 48px) var(--panel-x) 0;
+    }
+
+    @media (min-width: 768px) {
+        .letter-hero {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .letter-hero-text {
+            align-items: flex-start;
+            padding: 0 var(--panel-x) clamp(32px, 4.5vw, 64px) clamp(32px, 5vw, 72px);
+        }
+    }
+
+    /* The rule-diamond-rule ornament above the date is black here, not the site's gold. */
+    .letter .ornament-rule {
+        background: #000;
+    }
+
+    .letter .ornament-diamond {
+        border-color: #000;
+    }
+
+    .letter-face {
+        padding: 48px clamp(24px, 4.4vw, 64px);
+    }
+
+    .letter-face-last {
+        border-bottom: 1px solid var(--color-espresso);
+    }
+
+    .letter-face-back {
+        display: none;
+    }
+
+    /* ---- The envelope (is-sealed and is-open) -------------------------------------------- */
+
+    .js .std-stage:is(.is-sealed, .is-open) {
+        .env-part {
+            display: block;
+            position: absolute;
+            left: 50%;
+            width: var(--env-w);
+            margin-left: calc(var(--env-w) / -2);
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .env-back {
+            top: var(--env-top);
+            height: var(--env-h);
+        }
+
+        .env-pocket {
+            top: calc(var(--env-top) + var(--env-h) * 0.365);
+            height: calc(var(--env-h) * 0.635);
+        }
+
+        .env-flapwrap {
+            top: var(--env-top);
+            height: calc(var(--env-h) * 0.599);
+            perspective: 1800px;
+        }
+
+        .env-flap {
+            transform-origin: 50% 0;
+            backface-visibility: visible;
+            transform: rotateX(0deg);
+        }
+
+        /* The envelope as it arrives: one 3D card, address side up, that turns over on open. */
+        .env-scene {
+            display: block;
+            position: absolute;
+            top: var(--env-top);
+            left: 50%;
+            z-index: 5;
+            width: var(--env-w);
+            height: var(--env-h);
+            margin-left: calc(var(--env-w) / -2);
+            perspective: 1800px;
+            pointer-events: none;
+            animation: std-env-in 1s var(--ease-out-soft) both;
+        }
+
+        .env-hit {
+            display: block;
+            position: absolute;
+            top: var(--env-top);
+            left: 50%;
+            z-index: 6;
+            width: var(--env-w);
+            height: var(--env-h);
+            margin-left: calc(var(--env-w) / -2);
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .env-hit:focus-visible {
+            outline: 3px solid var(--color-ink);
+            outline-offset: 8px;
+        }
+
+        /* The letter, folded in thirds and shrunk into the envelope. */
+        .letter {
+            height: calc(var(--p1) + var(--p2) + var(--p3));
+            perspective: 2000px;
+            transform-origin: 50% 0;
+            opacity: 0;
+            transform: translateY(var(--letter-in)) scale(var(--letter-scale));
+            box-shadow: none;
+        }
+
+        .letter-sheet {
+            box-shadow: var(--sheet-shadow);
+        }
+
+        .letter-panel-1 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            width: 100%;
+            height: var(--p1);
+            min-height: 0;
+        }
+
+        .letter-folds {
+            position: absolute;
+            top: var(--p1);
+            left: 0;
+            z-index: 2;
+            width: 100%;
+            height: calc(var(--p2) + var(--p3));
+            overflow: hidden;
+            perspective: 2000px;
+        }
+
+        .letter-fold {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            transform-origin: 50% 0;
+            transform-style: preserve-3d;
+        }
+
+        .letter-fold-2 {
+            top: 0;
+            height: var(--p2);
+            transform: rotateX(-180deg);
+        }
+
+        .letter-fold-3 {
+            top: 100%;
+            height: var(--p3);
+            transform: translateZ(-2px) rotateX(-180deg);
+            visibility: hidden;
+        }
+
+        .letter-face {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+        }
+
+        .letter-face-back {
+            display: block;
+            transform: rotateX(180deg);
+        }
+    }
+
+    /* Sealed, the letter is out of the tab order and the accessibility tree until it is opened. */
+    .js .std-stage.is-sealed .letter {
+        visibility: hidden;
+    }
+
+    /* ---- The envelope's look ------------------------------------------------------------- */
+
+    /* White paper and black ink. Every face is the same white, so the flap is set off by a soft
+       shadow and the inside of the envelope is a pale grey. */
+    .env-back,
+    .env-face-front,
+    .env-face-back {
+        box-sizing: border-box;
+        background: #fff;
+        border: 1px solid rgb(0 0 0 / 0.12);
+    }
+
+    .env-back {
+        z-index: 1;
+    }
+
+    .env-pocket {
+        z-index: 3;
+        background: #fff;
+        clip-path: polygon(0 0, 50% 36.9%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .env-flapwrap {
+        z-index: 4;
+    }
+
+    /* The clip-path on a flap would cut off its own shadow, so the shadow goes on its parent. */
+    .env-flapwrap,
+    .env-flap-shade {
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.16));
+    }
+
+    .env-inside {
+        position: absolute;
+        inset: 0;
+        background: #ececec;
+        clip-path: polygon(0 0, 100% 0, 100% 36.5%, 50% 59.9%, 0 36.5%);
+    }
+
+    .env-flap {
+        position: absolute;
+        inset: 0;
+        background: #fff;
+        clip-path: polygon(0 0, 100% 0, 100% 60.9%, 50% 100%, 0 60.9%);
+    }
+
+    .env-seal {
+        position: absolute;
+        top: calc(100% - var(--seal) / 2);
+        left: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--seal);
+        height: var(--seal);
+        margin-left: calc(var(--seal) / -2);
+        border-radius: 50%;
+        background: #000;
+        color: #fff;
+        box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+        font-family: var(--font-script);
+        font-size: calc(var(--seal) * 0.38);
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    /* On the turning envelope the seal is a sibling of the flap, not a child, so the flap's clip
+       never cuts it. */
+    .env-seal-face {
+        top: calc(59.9% - var(--seal) / 2);
+    }
+
+    .env-flip {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        transform: rotateY(180deg);
+    }
+
+    .env-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+    }
+
+    .env-face-front {
+        transform: rotateY(180deg);
+    }
+
+    .env-pocket-face {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 36.5%;
+        height: 63.5%;
+        background: #fff;
+        clip-path: polygon(0 0, 50% 36.9%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .env-flap-shade {
+        position: absolute;
+        inset: 0;
+    }
+
+    .env-flap-face {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 59.9%;
+        background: #fff;
+        clip-path: polygon(0 0, 100% 0, 100% 60.9%, 50% 100%, 0 60.9%);
+    }
+
+    .env-from {
+        position: absolute;
+        top: 6%;
+        left: 4.7%;
+        font-family: var(--font-script);
+        font-size: calc(var(--env-w) * 0.043);
+        line-height: 1;
+        color: #000;
+    }
+
+    .env-stamp {
+        position: absolute;
+        top: 6%;
+        right: 4.3%;
+        box-sizing: border-box;
+        width: calc(var(--env-w) * 0.107);
+        aspect-ratio: 64 / 76;
+        padding: calc(var(--env-w) * 0.007);
+        border: 1px solid #000;
+    }
+
+    .env-stamp-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        border: 1px solid #000;
+    }
+
+    .env-stamp-monogram {
+        font-family: var(--font-script);
+        font-size: calc(var(--env-w) * 0.033);
+        line-height: 1;
+        white-space: nowrap;
+        color: #000;
+    }
+
+    .env-stamp-year {
+        font-family: var(--font-sans);
+        font-size: calc(var(--env-w) * 0.017);
+        letter-spacing: 0.2em;
+        color: #000;
+    }
+
+    .env-address {
+        position: absolute;
+        top: 39%;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2%;
+        padding: 0 8%;
+        text-align: center;
+    }
+
+    .env-address-names {
+        font-family: var(--font-script);
+        font-size: calc(var(--env-w) * 0.075);
+        line-height: 1.15;
+        color: #000;
+    }
+
+    /* The prompt under the address. It turns away with the envelope when it is opened. */
+    .env-tap {
+        margin-top: 4%;
+        font-family: var(--font-sans);
+        font-size: calc(var(--env-w) * 0.02);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: #000;
+    }
+
+    .env-address-lines {
+        font-family: var(--font-serif);
+        font-size: calc(var(--env-w) * 0.04);
+        line-height: 1.5;
+        color: #000;
+    }
+
+    /* ---- The timeline -------------------------------------------------------------------- */
+
+    /* 0.1–0.9s seal lifts · 0.6–2.0s flap opens · 1.9–3.3s letter drawn out as the envelope drops
+       away · 3.4–4.4s middle panel unfolds · 4.4–5.4s bottom panel unfolds · 5.5–7.1s letter grows
+       to full size. Percentages are of the 7.2s run that starts after the 1.2s turn. */
+    .js .std-stage.is-open {
+        .env-hit {
+            display: none;
+        }
+
+        .env-flip {
+            animation: std-turn-over 1.2s cubic-bezier(0.6, 0, 0.2, 1) both;
+        }
+
+        .env-part {
+            animation:
+                std-appear 1.2s both,
+                std-env 7.2s 1.2s both;
+        }
+
+        .env-flapwrap {
+            animation:
+                std-appear 1.2s both,
+                std-env 7.2s 1.2s both,
+                std-flap-z 7.2s 1.2s both;
+        }
+
+        .env-flap {
+            animation: std-flap 7.2s 1.2s both;
+        }
+
+        .env-flapwrap .env-seal {
+            animation: std-seal 7.2s 1.2s both;
+        }
+
+        .letter {
+            animation: std-letter 7.2s 1.2s both;
+        }
+
+        .letter-fold-2 {
+            animation: std-unfold-2 7.2s 1.2s both;
+        }
+
+        .letter-fold-3 {
+            animation: std-unfold-3 7.2s 1.2s both;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .js .std-stage:is(.is-sealed, .is-open) {
+            .env-scene {
+                animation: none;
+            }
+        }
+    }
+
+    /* ---- The scroll cue (page.html) ------------------------------------------------------ */
+
+    /* A small espresso disc with a gold rim, floating at the foot of the window once the lettering
+       is written (save-the-date.js), so nobody stops at the first panel. It fades in, bobs, and
+       fades out at the first scroll: `is-visible` on, then `is-leaving`, then `hidden` again. */
+    .std-scroll {
+        position: fixed;
+        bottom: max(20px, env(safe-area-inset-bottom));
+        left: 50%;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 64px;
+        height: 64px;
+        justify-content: center;
+        padding-top: 4px;
+        border: 1px solid var(--color-gold);
+        border-radius: 9999px;
+        background: color-mix(in oklab, var(--color-espresso) 88%, transparent);
+        color: var(--color-ivory);
+        box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+        cursor: pointer;
+        opacity: 0;
+        transform: translate(-50%, 12px);
+        transition:
+            opacity 0.8s ease,
+            transform 0.8s var(--ease-out-soft);
+
+        &.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        &.is-leaving {
+            opacity: 0;
+            transition-duration: 0.4s;
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: var(--color-espresso);
+        }
+
+        &:focus-visible {
+            outline: 1px solid var(--color-gold);
+            outline-offset: 3px;
+        }
+
+        svg {
+            color: var(--color-gold);
+            animation: std-scroll-bob 2.4s ease-in-out infinite;
+        }
+    }
+
+    .std-scroll-label {
+        font-family: var(--font-sans);
+        font-size: 9px;
+        letter-spacing: 0.3em;
+        margin-right: -0.3em; /* the tracking's trailing space, so the word sits centred */
+        text-transform: uppercase;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .std-scroll svg {
+            animation: none;
+        }
+    }
+
+    /* ---- The lettering (_lettering.html) ------------------------------------------------- */
+
+    .lettering {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+    }
+
+    .lettering-title {
+        position: absolute;
+        top: clamp(16px, 4%, 48px);
+        left: 10%;
+        width: 80%;
+        color: #fff;
+        filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.75)) drop-shadow(0 0 12px rgb(0 0 0 / 0.35));
+    }
+
+    /* Written out once the letter is drawn clear of the envelope (4.6s after the click) and done
+       about 10s after the click, as the letter has grown to full size. The swash S and D are drawn
+       together 0–2.1s while AVE, THE, and ATE fade up, then, below the photo, "for the marriage
+       of", Sarah's name, "and", Frank's name, done by 5.4s. Times are --lt-at offsets from
+       --lt-start. `is-writing` stays on after `is-done`, so nothing restarts. */
+    .js .std-stage.is-writing .lettering {
+        --lt-start: 4.6s;
+
+        .lt-s {
+            mask: url(#lt-pen-s);
+        }
+
+        .lt-d {
+            mask: url(#lt-pen-d);
+        }
+
+        .lt-name-sarah {
+            mask: url(#lt-wipe-sarah);
+        }
+
+        .lt-name-frank {
+            mask: url(#lt-wipe-frank);
+        }
+
+        .lt-pen {
+            stroke-dasharray: 1 2;
+            animation: lt-pen 2.1s var(--lt-start) cubic-bezier(0.45, 0, 0.4, 1) both;
+        }
+
+        .lt-caps-ave {
+            --lt-at: 0.9s;
+        }
+
+        .lt-caps-the {
+            --lt-at: 1.2s;
+        }
+
+        .lt-caps-ate {
+            --lt-at: 1.5s;
+        }
+
+        .lt-caps path {
+            animation: lt-rise 0.9s calc(var(--lt-start) + var(--lt-at) + var(--i, 0) * 0.15s) var(--ease-out-soft) both;
+        }
+
+        .lt-caps path:nth-child(2) {
+            --i: 1;
+        }
+
+        .lt-caps path:nth-child(3) {
+            --i: 2;
+        }
+
+        .lt-for {
+            --lt-at: 2.1s;
+        }
+
+        .lt-and {
+            --lt-at: 3.6s;
+        }
+
+        .lt-small {
+            animation: fade 0.9s calc(var(--lt-start) + var(--lt-at)) ease both;
+        }
+
+        .lt-wipe {
+            transform-box: fill-box;
+            animation: lt-wipe 1.5s calc(var(--lt-start) + var(--lt-at)) cubic-bezier(0.35, 0, 0.45, 1) both;
+        }
+
+        #lt-wipe-sarah .lt-wipe {
+            --lt-at: 2.4s;
+        }
+
+        #lt-wipe-frank .lt-wipe {
+            --lt-at: 3.9s;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .js .std-stage.is-writing .lettering * {
+            animation: none;
+            mask: none;
+        }
+    }
+}
+
+@keyframes lt-pen {
+    from {
+        stroke-dashoffset: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes lt-rise {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes lt-wipe {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes std-env-in {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes std-turn-over {
+    0% {
+        transform: rotateY(180deg);
+    }
+    100% {
+        transform: rotateY(0deg);
+        visibility: hidden;
+    }
+}
+
+/* The working envelope's separate layers appear the instant the turn completes. */
+@keyframes std-appear {
+    0%,
+    99.9% {
+        visibility: hidden;
+    }
+    100% {
+        visibility: visible;
+    }
+}
+
+@keyframes std-env {
+    0%,
+    26% {
+        opacity: 1;
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+    }
+    47%,
+    100% {
+        opacity: 0;
+        transform: translateY(var(--env-drop));
+    }
+}
+
+@keyframes std-flap-z {
+    0%,
+    18% {
+        z-index: 4;
+    }
+    19%,
+    100% {
+        z-index: 0;
+    }
+}
+
+@keyframes std-flap {
+    0%,
+    8% {
+        transform: rotateX(0deg);
+        animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+    }
+    28%,
+    100% {
+        transform: rotateX(-180deg);
+    }
+}
+
+@keyframes std-seal {
+    0%,
+    2% {
+        opacity: 1;
+        transform: scale(1);
+        animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+    }
+    12%,
+    100% {
+        opacity: 0;
+        transform: scale(1.4);
+    }
+}
+
+/* While the letter is in the envelope it is clipped at the envelope's bottom edge (the negative
+   insets leave room for the sheet's shadow). As it is drawn out the clip moves down with it on the
+   same curve, staying at or above the falling envelope's edge, and is dropped once it is clear. */
+@keyframes std-letter {
+    0%,
+    8% {
+        opacity: 0;
+        transform: translateY(var(--letter-in)) scale(var(--letter-scale));
+        clip-path: inset(-200px -200px calc(100% - var(--letter-clip)) -200px);
+        z-index: 2;
+    }
+    12% {
+        opacity: 1;
+    }
+    26% {
+        transform: translateY(var(--letter-in)) scale(var(--letter-scale));
+        clip-path: inset(-200px -200px calc(100% - var(--letter-clip)) -200px);
+        z-index: 2;
+        animation-timing-function: cubic-bezier(0.16, 0.84, 0.26, 1);
+    }
+    45% {
+        transform: translateY(0) scale(var(--letter-scale));
+        clip-path: inset(-200px -200px calc(100% - var(--letter-clip) - var(--letter-in) / var(--letter-scale)) -200px);
+        z-index: 2;
+    }
+    46% {
+        clip-path: none;
+        z-index: 5;
+    }
+    77% {
+        transform: translateY(0) scale(var(--letter-scale));
+        z-index: 5;
+        animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+    }
+    98%,
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        z-index: 5;
+    }
+}
+
+@keyframes std-unfold-2 {
+    0%,
+    47% {
+        transform: rotateX(-180deg);
+        animation-timing-function: cubic-bezier(0.5, 0, 0.2, 1);
+    }
+    61%,
+    100% {
+        transform: rotateX(0deg);
+    }
+}
+
+@keyframes std-unfold-3 {
+    0%,
+    60.9% {
+        visibility: hidden;
+        transform: translateZ(-2px) rotateX(-180deg);
+    }
+    61% {
+        visibility: visible;
+        transform: translateZ(-2px) rotateX(-180deg);
+        animation-timing-function: cubic-bezier(0.5, 0, 0.2, 1);
+    }
+    75%,
+    100% {
+        visibility: visible;
+        transform: translateZ(-2px) rotateX(0deg);
+    }
+}
+
+@keyframes std-scroll-bob {
+    0%,
+    100% {
+        transform: translateY(-2px);
+    }
+    50% {
+        transform: translateY(3px);
+    }
+}

@@ -1,0 +1,32 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}RSVP · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<section class="flex justify-center px-5 pt-14 pb-24 sm:px-16 sm:pt-20">
+    <div class="flex w-full max-w-[640px] flex-col gap-6">
+        <header class="flex flex-col items-center gap-5 text-center">
+            <h1 class="page-title motion-ink text-[clamp(4.4444rem,3rem+5vw,6.2222rem)] [animation-delay:100ms]">RSVP</h1>
+            {% if wedding.rsvp_closed_message %}
+            <div class="ck-content motion-rise text-lede [animation-delay:600ms]">{{ wedding.rsvp_closed_message|safe }}</div>
+            {% else %}
+            <p class="motion-rise text-lede [animation-delay:600ms]">RSVPs are closed.</p>
+            {% endif %}
+            {% if wedding.contact_email %}
+            <p class="motion-rise [animation-delay:750ms]">
+                Need to change something? Email us at
+                <a href="mailto:{{ wedding.contact_email }}" class="text-link">{{ wedding.contact_email }}</a>.
+            </p>
+            {% endif %}
+        </header>
+        {% if summary %}
+        <div class="motion-rise mt-6 flex flex-col gap-4 [animation-delay:900ms]">
+            <h2 class="heading text-center">What we have for {{ household.name }}</h2>
+            {% include "guests/rsvp/includes/summary.html" with summary=summary %}
+            <form method="post" action="{% url 'rsvp:reset' %}" class="mt-2 text-center">
+                {% csrf_token %}
+                <button type="submit" class="text-link text-small">Not {{ household.name }}? Start over</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock content %}

@@ -1,0 +1,1 @@
+{{ contact_names }}, will you join us? RSVP{% if rsvp_deadline_display %} by {{ rsvp_deadline_display }}{% endif %}

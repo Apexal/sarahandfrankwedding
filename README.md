@@ -11,9 +11,8 @@ sarahandfrankwedding is...
 ## Getting Started
 
 1. Clone this repo and `cd` into it
-1. `./setup_project.sh` — replace all template placeholders (run once, then delete)
 1. `cp .env.example .env` and set `SECRET_KEY`
-1. `make setup` — install deps, migrate, and seed sample data
+1. `make setup` — install deps, migrate, and create the `admin`/`admin` superuser
 1. `cd static/css && curl -sL daisyui.com/fast | bash` — install Tailwind + DaisyUI
 1. `make css` — watch and rebuild Tailwind CSS (separate terminal)
 1. `make dev` — start the development server

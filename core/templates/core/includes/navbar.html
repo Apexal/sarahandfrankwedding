@@ -1,32 +1,33 @@
-<nav class="navbar bg-base-300">
-    <div class="container mx-auto">
-        <div class="flex-1">
-            <a href="{% url 'core:home' %}" class="btn btn-ghost text-xl">{{ company.name }}</a>
-        </div>
-        <div class="flex-none">
-            {% if user.is_authenticated %}
-                <ul class="menu menu-horizontal px-1">
-                    <li>
-                        <details>
-                            <summary>{{ user.name|default:user.email }}</summary>
-                            <ul class="p-2 bg-base-200 rounded-t-none z-50">
-                                <li><a href="{% url 'core:profile' %}">Profile</a></li>
-                                {% if user.is_staff or user.is_superuser %}
-                                <li><a target="_blank" href="{% url 'admin:index' %}">Admin Dashboard</a></li>
-                                {% endif %}
-                                <li><a href="{% url 'account_logout' %}">Logout</a></li>
-                            </ul>
-                        </details>
-                    </li>
-                </ul>
-            {% else %}
-                <ul class="menu menu-horizontal px-1">
-                    <li><a href="{% url 'account_login' %}">Login</a></li>
-                    {% if app_settings.allow_registration %}
-                    <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
-                    {% endif %}
-                </ul>
-            {% endif %}
-        </div>
+{% with current=request.resolver_match.view_name names=wedding.couple_names|default:company.name %}
+<header class="relative border-b border-gold bg-ivory">
+    {# Desktop: the names centered over one row of tracked caps. #}
+    <div class="hidden flex-col items-center gap-3.5 px-16 pt-9 pb-6 lg:flex">
+        <a href="{% url 'pages:home' %}" class="script motion-fade px-3 text-[2.4444rem] leading-[1.1] text-ink no-underline">{{ names }}</a>
+        <nav aria-label="Main" class="motion-fade [animation-delay:250ms]">
+            <ul class="flex flex-wrap justify-center gap-x-9">
+                {% include "core/includes/nav_links.html" %}
+            </ul>
+        </nav>
     </div>
-</nav>
+    {# Phone and tablet: the names and a menu button; the links drop down below the bar. #}
+    <div class="flex items-center justify-between px-5 py-[22px] lg:hidden">
+        <a href="{% url 'pages:home' %}" class="script motion-fade text-[1.7778rem] leading-[1.1] text-ink no-underline">{{ names }}</a>
+        <details class="group">
+            <summary class="motion-fade inline-flex h-11 w-11 cursor-pointer list-none items-center justify-center text-ink [animation-delay:200ms] [&::-webkit-details-marker]:hidden"
+                     aria-label="Menu">
+                <svg class="group-open:hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+                <svg class="hidden group-open:block" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"></path>
+                </svg>
+            </summary>
+            <nav aria-label="Main" class="absolute inset-x-0 top-full z-40 border-b border-gold bg-ivory px-5 py-4">
+                <ul class="flex flex-col items-center">
+                    {% include "core/includes/nav_links.html" %}
+                </ul>
+            </nav>
+        </details>
+    </div>
+</header>
+{% endwith %}

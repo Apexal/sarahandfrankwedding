@@ -42,6 +42,55 @@ class EmailTemplateService:
         reply_to: str | None = None,
         fail_silently: bool = False,
     ) -> TaskResult:
+        _, task_result = self._render_persist_and_enqueue(
+            template_key=template_key,
+            to_email=to_email,
+            context_data=context_data,
+            subject=subject,
+            from_email=from_email,
+            reply_to=reply_to,
+            fail_silently=fail_silently,
+        )
+        return task_result
+
+    def queue_email(
+        self,
+        *,
+        template_key: str,
+        to_email: str,
+        context_data: object,
+        subject: str | None = None,
+        from_email: str | None = None,
+        reply_to: str | None = None,
+        fail_silently: bool = False,
+    ) -> OutboundEmail:
+        """Like `send_email`, but returns the `OutboundEmail` audit row instead of the task result.
+
+        For callers that keep their own record of the send (a campaign recipient, say) and
+        want to point at the row whose status the email worker will update.
+        """
+        outbound_email, _ = self._render_persist_and_enqueue(
+            template_key=template_key,
+            to_email=to_email,
+            context_data=context_data,
+            subject=subject,
+            from_email=from_email,
+            reply_to=reply_to,
+            fail_silently=fail_silently,
+        )
+        return outbound_email
+
+    def _render_persist_and_enqueue(
+        self,
+        *,
+        template_key: str,
+        to_email: str,
+        context_data: object,
+        subject: str | None,
+        from_email: str | None,
+        reply_to: str | None,
+        fail_silently: bool,
+    ) -> tuple[OutboundEmail, TaskResult]:
         template_html = self._get_template_html(template_key=template_key)
         normalized_context = self._normalize_context_data(
             template_key=template_key,
@@ -69,10 +118,11 @@ class EmailTemplateService:
             template_version=template_html,
         )
 
-        return send_outbound_email_task.enqueue(
+        task_result = send_outbound_email_task.enqueue(
             outbound_email_id=outbound_email.id,
             fail_silently=fail_silently,
         )
+        return outbound_email, task_result
 
     def _get_template_html(self, *, template_key: str) -> EmailTemplateVersion:
         template_html = EmailTemplateVersion.objects.filter(template_key=template_key).first()

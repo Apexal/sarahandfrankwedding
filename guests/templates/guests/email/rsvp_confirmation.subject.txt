@@ -1,0 +1,1 @@
+We got your RSVP, {{ contact_names }}

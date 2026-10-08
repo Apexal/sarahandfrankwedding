@@ -1,0 +1,37 @@
+{% extends "pages/base_public.html" %}
+{% comment %}
+The venue's copy: one table per printed page, guest names grouped by household. The site
+chrome is dropped (empty navbar and footer blocks) so the printout is only the tables.
+{% endcomment %}
+{% block head_title %}Seating chart · {{ wedding.couple_names }}{% endblock head_title %}
+{% block navbar %}{% endblock navbar %}
+{% block footer %}{% endblock footer %}
+{% block content %}
+<div class="print:hidden mb-8 flex flex-wrap items-baseline justify-between gap-4">
+    <h1 class="font-display text-3xl">Seating chart</h1>
+    <p>
+        Print this page from the browser: each table starts a new page.
+        <a href="{% url 'manage:seating' %}" class="link">Back to seating</a>
+    </p>
+</div>
+{% for card in cards %}
+<section class="break-after-page break-inside-avoid mb-12">
+    <h2 class="font-display text-4xl">{{ card.table.name }}</h2>
+    <p class="mt-1 text-sm">{{ card.used }} of {{ card.table.capacity }} seat{{ card.table.capacity|pluralize }}</p>
+    {% for group in card.households %}
+    <div class="mt-6">
+        <p class="text-sm uppercase tracking-widest">{{ group.household.name }}</p>
+        <ul class="mt-1 text-2xl space-y-1">
+            {% for seat in group.guests %}
+            <li>{{ seat.guest.display_name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% empty %}
+    <p class="mt-6 text-xl">Nobody seated yet.</p>
+    {% endfor %}
+</section>
+{% empty %}
+<p>No tables yet.</p>
+{% endfor %}
+{% endblock content %}

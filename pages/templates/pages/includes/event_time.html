@@ -1,0 +1,12 @@
+{% comment %}An event's day and time span, e.g. "Saturday / 6:00 – 11:00 PM". Expects `event`.{% endcomment %}
+<time datetime="{{ event.starts_at|date:'c' }}">{{ event.starts_at|date:"l" }}</time><br />
+{% if not event.ends_at %}
+    {{ event.starts_at|time:"g:i A" }}
+{% elif event.ends_at|date:"Y-m-d" != event.starts_at|date:"Y-m-d" %}
+    {{ event.starts_at|time:"g:i A" }} –
+    <time datetime="{{ event.ends_at|date:'c' }}">{{ event.ends_at|date:"l" }} {{ event.ends_at|time:"g:i A" }}</time>
+{% elif event.ends_at|time:"A" == event.starts_at|time:"A" %}
+    {{ event.starts_at|time:"g:i" }} – <time datetime="{{ event.ends_at|date:'c' }}">{{ event.ends_at|time:"g:i A" }}</time>
+{% else %}
+    {{ event.starts_at|time:"g:i A" }} – <time datetime="{{ event.ends_at|date:'c' }}">{{ event.ends_at|time:"g:i A" }}</time>
+{% endif %}

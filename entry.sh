@@ -29,9 +29,6 @@ python manage.py migrate --noinput
 echo "Ensuring cache table exists..."
 python manage.py createcachetable
 
-echo "Syncing auth groups..."
-python manage.py sync_groups
-
 echo "Starting steady_queue worker..."
 python manage.py steady_queue &
 WORKER_PID=$!

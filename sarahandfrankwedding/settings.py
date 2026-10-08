@@ -15,9 +15,9 @@ import sys
 import tomllib
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
-import posthog
 import structlog
 from dotenv import load_dotenv
 from import_export.formats.base_formats import CSV, JSON, XLSX
@@ -138,8 +138,6 @@ try:
 except OSError:
     pass
 
-CSRF_TRUSTED_ORIGINS = [f"https://{APP_NAME}.fly.dev"] if APP_NAME else []
-
 CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 
 
@@ -147,8 +145,8 @@ CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # When set (fly.toml sets "Fly-Client-IP"), TrustedClientIPMiddleware rewrites
-# REMOTE_ADDR from this header so allauth rate limits, auditlog remote_addr,
-# and structlog ip see the real client IP instead of Fly's proxy. Only set it
+# REMOTE_ADDR from this header so allauth rate limits and structlog ip see
+# the real client IP instead of Fly's proxy. Only set it
 # in environments where all traffic arrives through a proxy that overwrites
 # the header — otherwise clients could spoof their IP.
 TRUSTED_CLIENT_IP_HEADER = os.getenv("TRUSTED_CLIENT_IP_HEADER")
@@ -158,17 +156,39 @@ INTERNAL_IPS = ["127.0.0.1"]
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", f"https://{APP_NAME}.fly.dev" if APP_NAME else "http://localhost:8000")
 
+# CSRF must trust the custom domain (APP_BASE_URL) as well as the Fly hostname, or every
+# guest-facing form post from sarahandfrank.wedding fails.
+CSRF_TRUSTED_ORIGINS = [f"https://{APP_NAME}.fly.dev"] if APP_NAME else []
+_base_url_parts = urlsplit(APP_BASE_URL)
+if _base_url_parts.netloc:
+    _base_origin = f"{_base_url_parts.scheme}://{_base_url_parts.netloc}"
+    if _base_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_base_origin)
+
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
 DEFAULT_REPLY_TO_EMAIL = os.getenv("DEFAULT_REPLY_TO_EMAIL", "")
+
+# Staging safety net. When set, messaging/tasks.py delivers any email addressed outside
+# this list to the first address on it, with the original recipient in the subject, so a
+# rehearsal on staging can never reach a real guest. core/checks.py fails the deploy when
+# a staging app leaves it empty.
+EMAIL_RECIPIENT_ALLOWLIST = [
+    address.strip().lower() for address in os.getenv("EMAIL_RECIPIENT_ALLOWLIST", "").split(",") if address.strip()
+]
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
     EMAIL_FILE_PATH = "sent-emails/"
 else:
     EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
-    ANYMAIL = {
-        "RESEND_API_KEY": os.environ.get("RESEND_API_KEY", ""),
-    }
+ANYMAIL = {
+    "RESEND_API_KEY": os.environ.get("RESEND_API_KEY", ""),
+    # Resend tracking webhook at /anymail/resend/tracking/ (bounces, complaints): a random
+    # "user:pass" embedded in the URL given to Resend, plus the signing secret from the
+    # Resend dashboard. The receiver lives in guests/signals.py.
+    "WEBHOOK_SECRET": os.environ.get("ANYMAIL_WEBHOOK_SECRET", ""),
+    "RESEND_SIGNING_SECRET": os.environ.get("RESEND_SIGNING_SECRET", ""),
+}
 
 # Application definition
 
@@ -190,10 +210,10 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.mfa",
     "django_htmx",
-    "auditlog",
     "core",
     "messaging",
-    "agreements",
+    "pages",
+    "guests",
 ]
 
 MIDDLEWARE = [
@@ -202,23 +222,18 @@ MIDDLEWARE = [
     "csp.middleware.CSPMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "posthog.integrations.django.PosthogContextMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "core.middleware.UserTimezoneMiddleware",
-    "auditlog.middleware.AuditlogMiddleware",
-    "core.middleware.ImpersonationAuditMiddleware",
-    "core.middleware.MaintenanceModeMiddleware",
+    # Site password gate. Needs request.user (staff bypass) and the session.
+    "pages.middleware.SitePasswordMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     # Needs request.user and messages, so must stay after Authentication- and
     # MessageMiddleware.
     "core.middleware.RequireStaffMfaMiddleware",
-    # Same requirements, plus request.htmx. No-op until an Agreement is published.
-    "agreements.middleware.AgreementGateMiddleware",
     "django_structlog.middlewares.RequestMiddleware",
 ]
 
@@ -230,8 +245,10 @@ if DEBUG:
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     )
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-else:
-    INSTALLED_APPS.append("anymail")
+
+# anymail is installed in every environment so its webhook URLs resolve; only the
+# email backend selection is DEBUG-dependent.
+INSTALLED_APPS.append("anymail")
 
 AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin, regardless of `allauth`
@@ -271,6 +288,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.global_context",
+                "pages.context_processors.wedding",
             ],
         },
     },
@@ -324,7 +342,7 @@ else:
 # Cache — DatabaseCache so entries are shared across the gunicorn workers and
 # the steady_queue sidecar. LocMemCache (the default when CACHES is unset)
 # would give each process its own private cache, which silently breaks
-# allauth's rate-limit counters and AppSettings cache invalidation. The table
+# allauth's rate-limit counters and WeddingSettings cache invalidation. The table
 # is created by `manage.py createcachetable` (make setup / make migrate /
 # entry.sh); tests override this with LocMemCache below.
 CACHES = {
@@ -352,7 +370,7 @@ ACCOUNT_EMAIL_NOTIFICATIONS = True
 # framework installed is the raw host — subjects would read "[myapp.fly.dev]
 # Please Confirm Your Email Address", and it raises when there is no request.
 # Empty rather than the site name so allauth's subjects match the ones
-# core/api/emails.py writes, which carry no prefix either.
+# other senders write, which carry no prefix either.
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
 
 # Password validation
@@ -605,10 +623,8 @@ STEADY_QUEUE = Configuration.Options(
 # "email" worker this caps global send rate.
 EMAIL_RATE_LIMIT_PER_SECOND = max(1, int(os.getenv("EMAIL_RATE_LIMIT_PER_SECOND", "5")))
 
-# Housekeeping retention windows, enforced by recurring tasks in core/tasks.py
-# and messaging/tasks.py. Audit entries keep a year of history; rendered email
-# bodies (which can contain PII) are pruned sooner.
-AUDITLOG_RETENTION_DAYS = int(os.getenv("AUDITLOG_RETENTION_DAYS", "365"))
+# Housekeeping retention window, enforced by a recurring task in messaging/tasks.py.
+# Rendered email bodies can contain PII, so they are pruned after this many days.
 OUTBOUND_EMAIL_RETENTION_DAYS = int(os.getenv("OUTBOUND_EMAIL_RETENTION_DAYS", "90"))
 
 # Content Security Policy (django-csp)
@@ -639,14 +655,6 @@ if not DEBUG:
     # Don't enable SECURE_SSL_REDIRECT here — it breaks internal health checks
     # that probe the machine over plain HTTP.
 
-# PostHog analytics
-POSTHOG_API_KEY = os.getenv("POSTHOG_API_KEY")
-POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://us.i.posthog.com")
-POSTHOG_DISABLED = os.getenv("POSTHOG_DISABLED", "false").lower() == "true"
-posthog.api_key = POSTHOG_API_KEY
-posthog.host = POSTHOG_HOST
-posthog.disabled = POSTHOG_DISABLED
-
 # Import/Export settings
 IMPORT_EXPORT_FORMATS = [XLSX, CSV, JSON]
 IMPORT_EXPORT_IMPORT_IGNORE_BLANK_LINES = True
@@ -658,14 +666,12 @@ if ENV == "production":
 TESTING = "test" in sys.argv or "pytest" in sys.modules
 if TESTING:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
-    POSTHOG_DISABLED = True
     # Serve static files from finders instead of scanning STATIC_ROOT at
     # startup (which doesn't exist in test runs and warns on every request).
     WHITENOISE_AUTOREFRESH = True
     # Off by default so admin/superuser tests don't all need an enrolled
     # authenticator; TestRequireStaffMfa opts back in per-test.
     MFA_REQUIRED_FOR_STAFF = False
-    posthog.disabled = True
     LOGGING = {
         "version": 1,
         "disable_existing_loggers": True,

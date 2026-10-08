@@ -1,0 +1,10 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}{{ page.title }} · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<article>
+    {% include "pages/includes/page_header.html" with title=page.title %}
+    <div class="motion-rise mx-auto w-full max-w-[760px] px-5 pt-10 pb-24 [animation-delay:1s]">
+        <div class="ck-content">{{ page.body|safe }}</div>
+    </div>
+</article>
+{% endblock content %}

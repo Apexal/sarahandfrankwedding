@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% comment %}
+The guest-facing page chrome. Every public template (pages, save-the-date, RSVP) extends
+this and fills only `head_title` and `content`; the nav comes from core/base.html's
+navbar block and the footer is overridden below. `body.site` switches on the wedding
+type (Cormorant at 23px); each template sets its own widths.
+{% endcomment %}
+{% block head_title %}{{ wedding.couple_names }}{% endblock head_title %}
+{% block body_class %}site flex flex-col min-h-screen{% endblock body_class %}
+{% block body %}
+<main id="main" class="flex-1 flex flex-col">
+    {% if messages %}
+    <div class="mx-auto w-full max-w-[520px] px-5 pt-10 space-y-4">
+        {% for message in messages %}
+        <div role="alert" class="notice {% if message.tags == 'error' %}notice-error{% endif %}">
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}
+    {% endblock content %}
+</main>
+{% endblock body %}
+{% block footer %}
+<footer class="mt-auto flex flex-col items-center gap-3 border-t border-gold bg-champagne px-5 pt-10 pb-11 text-center sm:px-16 sm:pt-14 sm:pb-[60px]">
+    <p class="script text-[1.8889rem] leading-[1.1] sm:text-[2.2222rem]">{{ wedding.couple_names }}</p>
+    <p class="font-sans text-label-sm uppercase leading-[1.8] tracking-[0.24em] text-ink sm:text-label sm:tracking-[0.26em]">
+        <time datetime="{{ wedding.wedding_date|date:'Y-m-d' }}">{{ wedding.wedding_date|date:"F j, Y" }}</time>
+        {% if wedding.wedding_city %}<span class="hidden sm:inline"> · </span><br class="sm:hidden" />{{ wedding.wedding_city }}{% endif %}
+    </p>
+    {% if wedding.contact_email %}
+    <p class="mt-2 text-small leading-normal text-espresso">
+        Questions? Email us at<br class="sm:hidden" />
+        <a href="mailto:{{ wedding.contact_email }}" class="text-link">{{ wedding.contact_email }}</a>
+    </p>
+    {% endif %}
+</footer>
+{% endblock footer %}

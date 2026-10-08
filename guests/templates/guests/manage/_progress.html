@@ -1,0 +1,8 @@
+{% comment %}One labelled progress bar. `row` comes from `_progress()` in guests/views/manage.py.{% endcomment %}
+<div>
+    <div class="flex justify-between gap-4 text-sm">
+        <span>{{ row.label }}</span>
+        <span>{{ row.done }} / {{ row.total }} · {{ row.percent }}%</span>
+    </div>
+    <progress class="progress {{ color|default:'progress-primary' }} w-full" value="{{ row.done }}" max="{{ row.bar_max }}" aria-label="{{ row.label }}: {{ row.done }} of {{ row.total }}"></progress>
+</div>

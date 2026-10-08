@@ -1,0 +1,26 @@
+{% extends "pages/base_public.html" %}
+{% block head_title %}RSVP received · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<section class="flex justify-center px-5 pt-14 pb-24 sm:px-16 sm:pt-20">
+    <div class="flex w-full max-w-[640px] flex-col gap-6">
+        <header class="flex flex-col items-center gap-4 text-center">
+            <p class="eyebrow motion-rise [animation-delay:100ms]">RSVP received</p>
+            <h1 class="page-title motion-ink [animation-delay:300ms]">Thank you!</h1>
+            <p class="motion-rise text-lede [animation-delay:800ms]">Here is what we have for {{ household.name }}.</p>
+            <div class="mt-2">{% include "pages/includes/ornament.html" with rule="96px" delay=".9s" %}</div>
+        </header>
+        <div class="motion-rise mt-4 [animation-delay:1s]">
+            {% include "guests/rsvp/includes/summary.html" with summary=summary %}
+        </div>
+        <p class="motion-rise mt-4 text-center text-lede [animation-delay:1.2s]">
+            Plans change? You can
+            <a href="{% url 'rsvp:respond' %}" class="text-link">update your answers</a>
+            {% if wedding.rsvp_deadline %}until {{ wedding.rsvp_deadline|date:"F j, Y" }}{% else %}any time{% endif %}.
+        </p>
+        <form method="post" action="{% url 'rsvp:reset' %}" class="motion-rise text-center [animation-delay:1.3s]">
+            {% csrf_token %}
+            <button type="submit" class="text-link text-small">Not you? Start over</button>
+        </form>
+    </div>
+</section>
+{% endblock content %}
