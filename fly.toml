@@ -3,7 +3,7 @@
 #
 
 app = 'sarahandfrankwedding'
-primary_region = 'ord'
+primary_region = 'ewr'
 console_command = '/code/manage.py shell'
 
 [build]
@@ -36,3 +36,7 @@ console_command = '/code/manage.py shell'
 [[statics]]
   guest_path = '/code/staticfiles'
   url_prefix = '/static/'
+
+[mounts]
+  source = "wedding_data"
+  destination = "/data"
