@@ -1,0 +1,74 @@
+{% extends "pages/base_public.html" %}
+{% load static %}
+{% comment %}
+The guest list editor. Views: guests/views/guest_list.py; rules: guests/guest_list.py; drag-and-drop and the
+dialog: static/js/guest-list.js (CSP allows only 'self' scripts, so nothing is inline).
+{% endcomment %}
+{% block head_title %}Guest list · {{ wedding.couple_names }}{% endblock head_title %}
+{% block extra_head %}
+<script src="{% static 'js/vendor/Sortable.min.js' %}" defer></script>
+<script src="{% static 'js/guest-list.js' %}" defer></script>
+{% endblock extra_head %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6 [&_::placeholder]:text-base-content/45">
+    <div class="flex flex-wrap items-baseline justify-between gap-4">
+        <h1 class="font-display text-3xl sm:text-4xl">Guest list</h1>
+        <nav aria-label="Staff pages" class="flex flex-wrap gap-2">
+            <a href="{% url 'manage:dashboard' %}" class="btn btn-sm btn-outline">Dashboard</a>
+            <a href="{% url 'manage:seating' %}" class="btn btn-sm btn-outline">Seating</a>
+            <a href="{% url 'admin:guests_household_changelist' %}" class="btn btn-sm btn-outline">Admin</a>
+        </nav>
+    </div>
+
+    {% include "guests/manage/guest_list/_totals.html" %}
+
+    {% if codes_frozen %}
+    <div role="note" class="alert mt-4 text-sm">
+        <span>Invite codes are frozen: deleting a household breaks a save-the-date link that may already be out.</span>
+    </div>
+    {% endif %}
+
+    <section class="mt-6" aria-labelledby="add-heading">
+        <h2 id="add-heading" class="sr-only">Add a household</h2>
+        {% include "guests/manage/guest_list/_quick_add.html" %}
+    </section>
+
+    <form class="mt-6 flex flex-wrap items-center gap-3" role="search" aria-label="Filter households"
+          hx-get="{% url 'manage:guest_list' %}" hx-target="#household-list" hx-swap="innerHTML"
+          hx-trigger="input delay:300ms, submit" hx-push-url="true">
+        <label class="input input-sm w-full sm:w-72">
+            <span class="sr-only">Search</span>
+            <input type="search" name="q" value="{{ q }}" placeholder="Search names or invite code" autocomplete="off" />
+        </label>
+        <div class="join" role="radiogroup" aria-label="Side">
+            <input class="join-item btn btn-sm" type="radio" name="side" value="" aria-label="All" {% if not side %}checked{% endif %} />
+            {% for value, label in sides %}
+            <input class="join-item btn btn-sm" type="radio" name="side" value="{{ value }}" aria-label="{{ label }}" {% if side == value %}checked{% endif %} />
+            {% endfor %}
+        </div>
+        {% include "guests/manage/guest_list/_showing.html" %}
+    </form>
+    <p class="mt-2 text-xs opacity-70">
+        Drag a card by its grip to reorder households; drag a guest onto another card to move them. The arrow buttons do the same from the keyboard.
+    </p>
+
+    <div id="household-list" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"
+         data-gl-list="households" data-reorder-url="{% url 'manage:households_reorder' %}">
+        {% include "guests/manage/guest_list/_cards.html" %}
+    </div>
+
+    <div id="gl-error" role="alert" class="alert alert-error fixed right-4 bottom-4 left-4 z-50 hidden sm:left-auto sm:max-w-md">
+        <span>That change didn't save. Reload to see the current list.</span>
+        <button type="button" class="btn btn-sm" data-gl-reload>Reload</button>
+    </div>
+
+    <dialog id="gl-modal" class="modal" aria-labelledby="gl-modal-title">
+        <div class="modal-box font-sans text-base">
+            <div id="gl-modal-body"></div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button type="submit">Close</button>
+        </form>
+    </dialog>
+</div>
+{% endblock content %}

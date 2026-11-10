@@ -4,6 +4,7 @@
 <div class="flex flex-wrap items-baseline justify-between gap-4">
     <h1 class="font-display text-3xl sm:text-4xl">Dashboard</h1>
     <nav aria-label="Staff pages" class="flex flex-wrap gap-2">
+        <a href="{% url 'manage:guest_list' %}" class="btn btn-sm btn-outline">Guest list</a>
         <a href="{% url 'manage:seating' %}" class="btn btn-sm btn-outline">Seating</a>
         <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline">Admin</a>
     </nav>

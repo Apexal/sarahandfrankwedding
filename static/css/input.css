@@ -4,6 +4,7 @@
 
 @source not "./tailwindcss";
 @source not "./daisyui{,*}.mjs";
+@source not "../js/vendor";
 
 /* daisyUI without its built-in themes: the wedding theme below is the only one. */
 @plugin "./daisyui.mjs" {

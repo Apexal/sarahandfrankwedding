@@ -1,0 +1,32 @@
+{% comment %}
+One-line household add. "Bob & Carol Jones" makes both guests; "& Guest" or "+1" adds a plus-one; "The
+Smiths" makes an empty household to fill in. A new card is prepended to the list out of band.
+{% endcomment %}
+<form id="gl-quick-add" class="card border border-base-300 bg-base-200" hx-post="{% url 'manage:household_add' %}" hx-target="this" hx-swap="outerHTML">
+    <div class="card-body gap-3 p-4">
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="min-w-64 flex-1">
+                <label for="{{ quick_add.text.id_for_label }}" class="mb-1 block text-sm font-semibold">Add a household</label>
+                {{ quick_add.text }}
+                {% for error in quick_add.text.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ quick_add.side.id_for_label }}" class="mb-1 block text-sm">Side</label>
+                {{ quick_add.side }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        </div>
+        {% if quick_add.events.field.queryset.exists %}
+        <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <legend class="sr-only">Invited to</legend>
+            <span class="opacity-80">Invited to:</span>
+            {% for choice in quick_add.events %}
+            <label class="flex cursor-pointer items-center gap-1" for="{{ choice.id_for_label }}">{{ choice.tag }} {{ choice.choice_label }}</label>
+            {% endfor %}
+        </fieldset>
+        {% endif %}
+    </div>
+</form>
+{% if new_card %}
+<div hx-swap-oob="afterbegin:#household-list">{{ new_card }}</div>
+{% endif %}

@@ -1,0 +1,8 @@
+<p id="gl-showing" class="text-sm opacity-80" aria-live="polite" {% if oob %}hx-swap-oob="true"{% endif %}>
+    {% if filtered %}
+    Showing {{ cards|length }} of {{ total_households }} household{{ total_households|pluralize }}.
+    {% if not cards %}Nothing matches.{% endif %}
+    {% elif not cards %}
+    No households yet. Add the first one above.
+    {% endif %}
+</p>

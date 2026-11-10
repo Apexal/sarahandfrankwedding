@@ -1,0 +1,41 @@
+{% comment %}
+One guest row in a household card. `data-gl-guest` + `data-id` are what static/js/guest-list.js reads to
+save the order; the grip is the drag handle and the arrows do the same thing from the keyboard.
+{% endcomment %}
+<li id="guest-{{ guest.pk }}" data-gl-guest data-id="{{ guest.pk }}" data-move-url="{% url 'manage:guest_move' guest.pk %}"
+    class="flex items-center gap-1 border border-base-300 bg-base-100 py-1 pr-1 pl-0.5">
+    <span class="gl-guest-handle inline-flex h-8 w-6 shrink-0 cursor-grab items-center justify-center opacity-60 hover:opacity-100" title="Drag to reorder, or onto another household to move">
+        {% include "guests/manage/guest_list/_icon.html" with name="grip" %}
+    </span>
+    <span class="min-w-0 flex-1 text-sm leading-snug">
+        {% if guest.full_name %}
+        <span class="font-medium">{{ guest.full_name }}</span>
+        {% else %}
+        <span class="italic opacity-80">{{ guest.display_name }}</span>
+        {% endif %}
+        {% if guest.is_plus_one %}<span class="badge badge-accent badge-xs">+1</span>{% endif %}
+        {% if guest.is_child %}<span class="badge badge-info badge-xs">child</span>{% endif %}
+        {% if guest.table %}<span class="badge badge-ghost badge-xs">{{ guest.table }}</span>{% endif %}
+        {% if guest.also_known_as %}<span class="block text-xs opacity-70">aka {{ guest.also_known_as }}</span>{% endif %}
+    </span>
+    <span class="flex shrink-0 items-center">
+        <button type="button" class="btn btn-ghost btn-xs btn-square" data-gl-move="guest-up" aria-label="Move {{ guest.display_name }} up">
+            {% include "guests/manage/guest_list/_icon.html" with name="up" %}
+        </button>
+        <button type="button" class="btn btn-ghost btn-xs btn-square" data-gl-move="guest-down" aria-label="Move {{ guest.display_name }} down">
+            {% include "guests/manage/guest_list/_icon.html" with name="down" %}
+        </button>
+        <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Move {{ guest.display_name }} to another household"
+                hx-get="{% url 'manage:guest_move' guest.pk %}" hx-target="#gl-modal-body">
+            {% include "guests/manage/guest_list/_icon.html" with name="move" %}
+        </button>
+        <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Edit {{ guest.display_name }}"
+                hx-get="{% url 'manage:guest_edit' guest.pk %}" hx-target="#guest-{{ guest.pk }}" hx-swap="outerHTML">
+            {% include "guests/manage/guest_list/_icon.html" with name="edit" %}
+        </button>
+        <button type="button" class="btn btn-ghost btn-xs btn-square text-error" aria-label="Remove {{ guest.display_name }}"
+                hx-get="{% url 'manage:guest_delete' guest.pk %}" hx-target="#gl-modal-body">
+            {% include "guests/manage/guest_list/_icon.html" with name="trash" %}
+        </button>
+    </span>
+</li>

@@ -14,6 +14,12 @@ second is hard.
 
 ## 0. Change log
 
+**v9 (2026-11-10).** A visual guest list editor at `/manage/guests/` (section 8, "Guest list editor"):
+households as cards with their guests inside, drag-and-drop ordering (SortableJS) for households and for
+guests within and between households, a plus-one toggle, one-line quick add, in-place editing of names,
+flags, contact, address and invited events, and guarded deletes. `Household.sort_order` added for the custom
+household order. Seating keeps its no-drag-and-drop rule (decision 15); decision 19 covers the editor.
+
 **v8 (2026-09-03, night).** PostHog and maintenance mode removed. Domain events and handled exceptions go to
 structlog (the Fly logs) instead. With maintenance mode gone, `core.AppSettings` held only a site name and
 support email that fed allauth's emails, so those moved to `WeddingSettings` (`couple_names`, `contact_email`) and
@@ -307,6 +313,7 @@ class Household(TimestampedModel):
     invited_events       # M2M Event: what this household is invited to
     responded_at         # set on first RSVP submission; null = non-responder
     notes                # private
+    sort_order           # position on /manage/guests/; 0 for new households, so they sort first
     history = AuditlogHistoryField()
 
 class Guest(TimestampedModel):
@@ -531,6 +538,31 @@ route fails validation.
 - `RsvpQuestionAdmin` for the question set; `EventAdmin`; `ContactSubmissionAdmin` (section 10);
   `CampaignAdmin` (section 11).
 - All use `AuditlogHistoryAdminMixin` so the history view is available.
+
+**Guest list editor `/manage/guests/`** (`staff_member_required`; views in `guests/views/guest_list.py`,
+rules in `guests/guest_list.py`, JS in `static/js/guest-list.js`). The day-to-day way to edit the list; the
+admin stays for the rarer fields and bulk actions.
+
+- One card per household, in `Household.sort_order` order (then name), on a two- or three-column grid that
+  collapses to one column on a phone. Cards show side, empty, address confirmed, responded, bounced / no
+  email / opted out, the invite code, and one toggle chip per event.
+- Drag-and-drop is SortableJS 1.15.6, vendored in `static/js/vendor/` (the CSP allows only `'self'`
+  scripts). Households drag by their grip; guests drag within a card or onto another card to move
+  household. Up/down arrows and a "Move to…" dialog do the same from the keyboard or a phone. A reorder under
+  a search or side filter puts the visible households back into the slots they occupied, so hidden ones
+  keep their place.
+- Moving a guest into a household not invited to an event they answered for warns, then deletes those
+  RSVPs (and per-guest answers to questions conditional on those events); per-guest answers follow the
+  guest. Un-inviting a household from an event it answered for warns and deletes the same way.
+- A household left empty is kept and flagged "Empty": its link may already be out.
+- Plus-one toggle per household adds or removes its unnamed guest. It will not delete a plus-one who has
+  been named or has an RSVP; delete that guest from the card instead.
+- Quick add: one line, "Bob & Carol Jones" (via `split_names`), "& Guest" / "+1" for a plus-one, "The
+  Smiths" for an empty household. Side picker; non-private events are ticked by default.
+- Deletes always confirm in a `<dialog>`. When there is something to lose (RSVPs, answers, a sent email or
+  frozen codes, a confirmed address, a table seat) the dialog lists it and the person types the name.
+- Search (names, invite code), side filter, and whole-list totals (households, empty, guests, plus-ones,
+  children, per side) that refresh after every change.
 
 **Import (Phase 1).** A `django-import-export` `GuestResource`, one row per guest, household columns
 repeated:
@@ -924,6 +956,7 @@ not code:
 | 15 | Seating | Minimal in-system: `Table` + `Guest.table`, dropdown assignment in the admin, `/manage/seating/` with warnings, export; no drag and drop; reception only | 2026-09-03 |
 | 16 | Gate timing | Off until the invitations mail; password page points to the invitation and `contact_email`; every guest email footer carries the personal link | 2026-09-03 |
 | 17 | Starter features | Removed auditlog, impersonation, roles, registration switch, per-user timezone, profile page, API leftovers, faker seeding; kept staff MFA, structlog | 2026-09-03 |
+| 19 | Guest list editor | `/manage/guests/` with drag-and-drop (SortableJS, vendored) for households and guests; RSVPs that no longer apply are deleted after a warning; empty households kept | 2026-11-10 |
 | 18 | Observability | PostHog and maintenance mode removed; `AppSettings` folded into `WeddingSettings`; structlog is the only telemetry | 2026-09-03 |
 
 ---

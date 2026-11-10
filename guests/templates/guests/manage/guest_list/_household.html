@@ -1,0 +1,99 @@
+{% comment %}
+One household card: the unit of invitation. Every write on it re-renders this template (out of band,
+`oob`, when a move touches two cards). `data-gl-household` + `data-id` are what static/js/guest-list.js
+reads for the household order; the guest <ul> is a SortableJS list shared across cards.
+{% endcomment %}
+{% with pk=household.pk %}
+<article id="household-{{ pk }}" data-gl-household data-id="{{ pk }}" data-card-url="{% url 'manage:household_card' pk %}"
+         {% if oob %}hx-swap-oob="outerHTML"{% endif %}
+         class="card border border-base-300 bg-base-200 {% if not guests %}border-dashed border-warning{% endif %}">
+    <div class="card-body gap-3 p-4">
+        <header class="flex items-start gap-1">
+            <span class="gl-household-handle -ml-1 inline-flex h-8 w-7 shrink-0 cursor-grab items-center justify-center opacity-60 hover:opacity-100" title="Drag to reorder households">
+                {% include "guests/manage/guest_list/_icon.html" with name="grip" %}
+            </span>
+            <div class="min-w-0 flex-1">
+                <h2 class="font-display text-xl leading-tight break-words">{{ household.name }}</h2>
+                <ul class="mt-1 flex flex-wrap gap-1" aria-label="Status">
+                    <li><span class="badge badge-sm {% if household.side == 'sarah' %}badge-secondary{% elif household.side == 'frank' %}badge-neutral{% else %}badge-outline{% endif %}">{{ household.get_side_display }}</span></li>
+                    {% if not guests %}<li><span class="badge badge-sm badge-warning">Empty</span></li>{% endif %}
+                    {% if household.address_confirmed %}
+                    <li><span class="badge badge-sm badge-success">Address confirmed</span></li>
+                    {% else %}
+                    <li><span class="badge badge-sm badge-outline">No address yet</span></li>
+                    {% endif %}
+                    {% if household.responded %}<li><span class="badge badge-sm badge-success">Responded</span></li>{% endif %}
+                    {% if household.email_bounced_at %}
+                    <li><span class="badge badge-sm badge-error">Email bounced</span></li>
+                    {% elif not household.email %}
+                    <li><span class="badge badge-sm badge-outline border-dashed">No email</span></li>
+                    {% elif household.email_opt_out %}
+                    <li><span class="badge badge-sm badge-outline border-dashed">Opted out</span></li>
+                    {% endif %}
+                    <li><span class="badge badge-sm border-base-300 bg-base-100 font-mono tracking-wider" title="Invite code">{{ household.invite_code }}</span></li>
+                </ul>
+            </div>
+            <div class="flex shrink-0 items-center">
+                <button type="button" class="btn btn-ghost btn-xs btn-square" data-gl-move="household-up" aria-label="Move {{ household.name }} up">
+                    {% include "guests/manage/guest_list/_icon.html" with name="up" %}
+                </button>
+                <button type="button" class="btn btn-ghost btn-xs btn-square" data-gl-move="household-down" aria-label="Move {{ household.name }} down">
+                    {% include "guests/manage/guest_list/_icon.html" with name="down" %}
+                </button>
+                <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Edit {{ household.name }}"
+                        hx-get="{% url 'manage:household_edit' pk %}" hx-target="#household-{{ pk }}" hx-swap="outerHTML">
+                    {% include "guests/manage/guest_list/_icon.html" with name="edit" %}
+                </button>
+                <button type="button" class="btn btn-ghost btn-xs btn-square text-error" aria-label="Delete {{ household.name }}"
+                        hx-get="{% url 'manage:household_delete' pk %}" hx-target="#gl-modal-body">
+                    {% include "guests/manage/guest_list/_icon.html" with name="trash" %}
+                </button>
+            </div>
+        </header>
+
+        {% if notice %}<div role="status" class="alert alert-warning py-2 text-sm">{{ notice }}</div>{% endif %}
+
+        {% if event_chips %}
+        <div class="flex flex-wrap items-center gap-1" role="group" aria-label="Invited events for {{ household.name }}">
+            {% for chip in event_chips %}
+            <button type="button" aria-pressed="{{ chip.invited|yesno:'true,false' }}"
+                    title="{% if chip.invited %}Invited. Click to un-invite.{% else %}Not invited. Click to invite.{% endif %}"
+                    class="badge badge-sm cursor-pointer {% if chip.invited %}badge-primary{% else %}badge-outline opacity-60 line-through{% endif %}"
+                    hx-post="{% url 'manage:household_event' pk chip.event.pk %}" hx-vals='{"invited": "{{ chip.invited|yesno:"0,1" }}"}'
+                    hx-target="#household-{{ pk }}" hx-swap="outerHTML">
+                {{ chip.event.name }}
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <ul class="min-h-10 space-y-1" data-gl-list="guests" data-household="{{ pk }}" data-reorder-url="{% url 'manage:guests_reorder' pk %}"
+            aria-label="Guests in {{ household.name }}">
+            {% for guest in guests %}
+            {% include "guests/manage/guest_list/_guest.html" %}
+            {% endfor %}
+        </ul>
+        {% if not guests %}<p class="-mt-12 mb-2 text-center text-sm opacity-70 pointer-events-none">No guests. Add one, or drag someone here.</p>{% endif %}
+
+        {# The toggle sits over the left of the <details> row so the add-guest form gets the card's full width. #}
+        <div class="relative">
+            <label class="absolute top-0 left-0 flex cursor-pointer items-center gap-2 py-0.5 text-sm">
+                <input type="checkbox" class="toggle toggle-sm" name="on" value="1" {% if has_plus_one %}checked{% endif %}
+                       hx-post="{% url 'manage:household_plus_one' pk %}" hx-target="#household-{{ pk }}" hx-swap="outerHTML" />
+                Plus-one
+            </label>
+            <details {% if add_open or add_guest_form.errors %}open{% endif %}>
+                <summary class="ml-auto flex w-max cursor-pointer list-none items-center btn btn-ghost btn-xs [&::-webkit-details-marker]:hidden">Add a guest</summary>
+                <form hx-post="{% url 'manage:guest_add' pk %}" hx-target="#household-{{ pk }}" hx-swap="outerHTML"
+                      class="mt-3 grid grid-cols-2 gap-2 border-t border-base-300 pt-3">
+                    {% for error in add_guest_form.non_field_errors %}<p class="col-span-2 text-xs text-error">{{ error }}</p>{% endfor %}
+                    {% include "guests/manage/guest_list/_field.html" with field=add_guest_form.first_name %}
+                    {% include "guests/manage/guest_list/_field.html" with field=add_guest_form.last_name %}
+                    {% include "guests/manage/guest_list/_field.html" with field=add_guest_form.is_child class="self-center" %}
+                    <button type="submit" class="btn btn-primary btn-sm justify-self-end">Add</button>
+                </form>
+            </details>
+        </div>
+    </div>
+</article>
+{% endwith %}

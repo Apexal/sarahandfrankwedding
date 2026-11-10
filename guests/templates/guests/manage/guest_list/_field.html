@@ -1,0 +1,11 @@
+{% comment %}One form field with its label, help text and errors. Checkboxes sit beside their label.{% endcomment %}
+<div class="{{ class|default:'' }}">
+    {% if field.widget_type == "checkbox" %}
+    <label class="flex items-center gap-2 text-sm cursor-pointer" for="{{ field.id_for_label }}">{{ field }} <span>{{ field.label }}</span></label>
+    {% else %}
+    <label class="mb-1 block text-sm" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% endif %}
+    {% if field.help_text and show_help %}<p class="mt-1 text-xs opacity-75">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+</div>

@@ -1,0 +1,17 @@
+{% comment %}A move that would drop RSVPs. Cancel (or closing the dialog) re-renders both cards to undo the drop.{% endcomment %}
+<div data-gl-refresh="{{ guest.household_id }} {{ target.pk }}">
+    <h3 id="gl-modal-title" class="text-lg font-semibold">Move {{ guest.display_name }} to {{ target.name }}?</h3>
+    <p class="mt-2 text-sm">{{ target.name }} isn't invited to every event {{ guest.display_name }} answered for. These RSVPs will be deleted:</p>
+    <ul class="mt-2 list-disc pl-5 text-sm">
+        {% for rsvp in lost %}<li>{{ rsvp.event.name }}: {{ rsvp.attending|yesno:"attending,not attending" }}</li>{% endfor %}
+    </ul>
+    <form class="mt-4" hx-post="{{ action }}" hx-target="#gl-modal-body">
+        <input type="hidden" name="household" value="{{ target.pk }}" />
+        <input type="hidden" name="confirm" value="1" />
+        {% for pk in order %}<input type="hidden" name="order" value="{{ pk }}" />{% endfor %}
+        <div class="modal-action">
+            <button type="button" class="btn btn-ghost btn-sm" data-gl-close autofocus>Cancel</button>
+            <button type="submit" class="btn btn-warning btn-sm">Move and delete RSVPs</button>
+        </div>
+    </form>
+</div>

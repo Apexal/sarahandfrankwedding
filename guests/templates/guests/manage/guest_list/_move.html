@@ -1,0 +1,14 @@
+{% comment %}"Move to…": the keyboard and phone way to move a guest between households.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">Move {{ guest.display_name }}</h3>
+<p class="mt-2 text-sm">Out of {{ guest.household.name }}. They join the end of the household you pick.</p>
+<form class="mt-4" hx-post="{{ action }}" hx-target="#gl-modal-body">
+    <label for="gl-move-household" class="block text-sm">To household</label>
+    <select id="gl-move-household" name="household" class="select select-sm mt-1 w-full" required autofocus>
+        <option value="">Choose…</option>
+        {% for household in households %}<option value="{{ household.pk }}">{{ household.name }}</option>{% endfor %}
+    </select>
+    <div class="modal-action">
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close>Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Move</button>
+    </div>
+</form>

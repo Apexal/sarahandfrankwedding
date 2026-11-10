@@ -1,0 +1,21 @@
+{% comment %}Delete confirmation for a household or a guest. With `stakes`, the person types `subject` to go ahead.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">{{ title }}</h3>
+<p class="mt-2 text-sm">{{ detail }}</p>
+{% if stakes %}
+<div role="alert" class="alert alert-warning mt-3 text-sm">
+    <ul class="list-disc pl-4">
+        {% for line in stakes.lines %}<li>{{ line }}</li>{% endfor %}
+    </ul>
+</div>
+{% endif %}
+<form class="mt-4" hx-post="{{ action }}" hx-target="#gl-modal-body">
+    {% if stakes %}
+    <label class="block text-sm" for="gl-confirm-name">Type <strong>{{ subject }}</strong> to confirm</label>
+    <input id="gl-confirm-name" name="confirm_name" class="input input-sm mt-1 w-full" autocomplete="off" required autofocus />
+    {% endif %}
+    {% if error %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endif %}
+    <div class="modal-action">
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close {% if not stakes %}autofocus{% endif %}>Cancel</button>
+        <button type="submit" class="btn btn-error btn-sm">Delete</button>
+    </div>
+</form>

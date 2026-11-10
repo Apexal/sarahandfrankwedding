@@ -1,0 +1,22 @@
+{% comment %}Whole-list totals. Re-fetched whenever a write fires `guestlist-changed`.{% endcomment %}
+<div id="gl-totals" class="mt-6" hx-get="{% url 'manage:guest_list_totals' %}" hx-trigger="guestlist-changed from:body" hx-swap="outerHTML">
+    <div class="stats stats-vertical w-full bg-base-200 sm:stats-horizontal">
+        <div class="stat py-3">
+            <div class="stat-title">Households</div>
+            <div class="stat-value text-2xl">{{ totals.households }}</div>
+            {% if totals.empty_households %}<div class="stat-desc text-warning-content">{{ totals.empty_households }} empty</div>{% endif %}
+        </div>
+        <div class="stat py-3">
+            <div class="stat-title">Guests</div>
+            <div class="stat-value text-2xl">{{ totals.guests }}</div>
+            <div class="stat-desc">{{ totals.plus_ones }} plus-one{{ totals.plus_ones|pluralize }} · {{ totals.children }} child{{ totals.children|pluralize:"ren" }}</div>
+        </div>
+        {% for side in totals.sides %}
+        <div class="stat py-3">
+            <div class="stat-title">{{ side.label }}</div>
+            <div class="stat-value text-2xl">{{ side.guests }}</div>
+            <div class="stat-desc">guest{{ side.guests|pluralize }} in {{ side.households }} household{{ side.households|pluralize }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

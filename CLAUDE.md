@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is Sarah and Frank's wedding website: a Django 6 / Python 3.14 project managed with `uv`, with two users (us) and a guest list. The Django project package is `sarahandfrankwedding`. It began life as a client-project starter template; the parts of that template that only make sense for a client project (audit log, impersonation, staff roles, public registration, per-user timezones and the profile page, mobile-API tokens, faker seeding, the bootstrap script) were removed on purpose — see PLAN.md — so don't reintroduce them.
 
-Four installed apps hold all custom code: `core` (users, admin, auth, middleware, signals, rate limiter, housekeeping tasks), `messaging` (templated transactional email pipeline), `pages` (the public wedding site: `WeddingSettings` singleton, prose pages, the site-password gate), and `guests` (the guest-list system of record: households, guests, events, RSVPs, save-the-date and RSVP flows, campaigns, dashboard). Each domain app has its own `CLAUDE.md`.
+Four installed apps hold all custom code: `core` (users, admin, auth, middleware, signals, rate limiter, housekeeping tasks), `messaging` (templated transactional email pipeline), `pages` (the public wedding site: `WeddingSettings` singleton, prose pages, the site-password gate), and `guests` (the guest-list system of record: households, guests, events, RSVPs, save-the-date and RSVP flows, campaigns, dashboard, the `/manage/guests/` editor). Each domain app has its own `CLAUDE.md`.
 
 ## Common commands
 

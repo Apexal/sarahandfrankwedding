@@ -1,0 +1,3 @@
+{% for card in cards %}
+{% include "guests/manage/guest_list/_household.html" with household=card.household guests=card.guests event_chips=card.event_chips has_plus_one=card.has_plus_one add_guest_form=card.add_guest_form notice=card.notice oob=False %}
+{% endfor %}

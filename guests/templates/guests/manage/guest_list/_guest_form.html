@@ -1,0 +1,21 @@
+{% comment %}A guest row in edit mode. Saving re-renders the whole household card.{% endcomment %}
+<li id="guest-{{ guest.pk }}" data-gl-guest data-id="{{ guest.pk }}" data-move-url="{% url 'manage:guest_move' guest.pk %}"
+    class="border border-primary bg-base-100 p-2">
+    <form hx-post="{% url 'manage:guest_edit' guest.pk %}" hx-target="#household-{{ guest.household_id }}" hx-swap="outerHTML"
+          class="grid grid-cols-2 gap-2">
+        {% for error in form.non_field_errors %}<p class="col-span-2 text-xs text-error">{{ error }}</p>{% endfor %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.first_name %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.last_name %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.also_known_as class="col-span-2" show_help=True %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.email class="col-span-2" %}
+        <div class="col-span-2 flex flex-wrap gap-4">
+            {% include "guests/manage/guest_list/_field.html" with field=form.is_child %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.is_plus_one %}
+        </div>
+        <div class="col-span-2 flex justify-end gap-2">
+            <button type="button" class="btn btn-ghost btn-sm" hx-get="{% url 'manage:household_card' guest.household_id %}"
+                    hx-target="#household-{{ guest.household_id }}" hx-swap="outerHTML">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        </div>
+    </form>
+</li>

@@ -1,0 +1,14 @@
+{% comment %}Un-inviting a household that has already answered for the event.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">Un-invite {{ household.name }} from {{ event.name }}?</h3>
+<p class="mt-2 text-sm">They have already answered. These RSVPs will be deleted:</p>
+<ul class="mt-2 list-disc pl-5 text-sm">
+    {% for rsvp in lost %}<li>{{ rsvp.guest.display_name }}: {{ rsvp.attending|yesno:"attending,not attending" }}</li>{% endfor %}
+</ul>
+<form class="mt-4" hx-post="{{ action }}" hx-target="#household-{{ household.pk }}" hx-swap="outerHTML">
+    <input type="hidden" name="invited" value="0" />
+    <input type="hidden" name="confirm" value="1" />
+    <div class="modal-action">
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close autofocus>Cancel</button>
+        <button type="submit" class="btn btn-warning btn-sm">Un-invite and delete RSVPs</button>
+    </div>
+</form>

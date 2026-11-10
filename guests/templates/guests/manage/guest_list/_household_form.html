@@ -1,0 +1,41 @@
+{% comment %}A household card in edit mode. Keeps the card's id and data attributes so the order still saves.{% endcomment %}
+<article id="household-{{ household.pk }}" data-gl-household data-id="{{ household.pk }}" data-card-url="{% url 'manage:household_card' household.pk %}"
+         class="card border border-primary bg-base-200">
+    <form class="card-body gap-3 p-4" hx-post="{% url 'manage:household_edit' household.pk %}" hx-target="#household-{{ household.pk }}" hx-swap="outerHTML">
+        <h2 class="font-display text-xl">Edit {{ household.name }}</h2>
+        {% for error in form.non_field_errors %}<p class="text-sm text-error">{{ error }}</p>{% endfor %}
+        <div class="grid grid-cols-2 gap-2">
+            {% include "guests/manage/guest_list/_field.html" with field=form.name class="col-span-2" show_help=True %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.side class="col-span-2" %}
+        </div>
+        <fieldset class="grid grid-cols-2 gap-2">
+            <legend class="mb-1 text-sm font-semibold">Contact</legend>
+            {% include "guests/manage/guest_list/_field.html" with field=form.email class="col-span-2" %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.phone class="col-span-2" %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.email_opt_out class="col-span-2" %}
+            {% if form.clear_bounce %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.clear_bounce class="col-span-2" show_help=True %}
+            {% endif %}
+        </fieldset>
+        <fieldset class="grid grid-cols-2 gap-2">
+            <legend class="mb-1 text-sm font-semibold">Mailing address</legend>
+            {% include "guests/manage/guest_list/_field.html" with field=form.address_line1 class="col-span-2" %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.address_line2 class="col-span-2" %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.city %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.state %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.postal_code %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.country %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.address_confirmed class="col-span-2" show_help=True %}
+        </fieldset>
+        {% include "guests/manage/guest_list/_field.html" with field=form.notes show_help=True %}
+        <p class="text-xs opacity-75">
+            Save-the-date link: <code class="select-all">{{ household.save_the_date_url }}</code>
+        </p>
+        <div class="flex flex-wrap justify-end gap-2">
+            <a href="{% url 'admin:guests_household_change' household.pk %}" class="btn btn-ghost btn-sm mr-auto">Open in the admin</a>
+            <button type="button" class="btn btn-ghost btn-sm" hx-get="{% url 'manage:household_card' household.pk %}"
+                    hx-target="#household-{{ household.pk }}" hx-swap="outerHTML">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        </div>
+    </form>
+</article>

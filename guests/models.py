@@ -164,9 +164,13 @@ class Household(TimestampedModel):
     )
     responded_at = models.DateTimeField(null=True, blank=True, help_text="Set on the first RSVP submission.")
     notes = models.TextField(blank=True, help_text="Private.")
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Position on the guest list editor (/manage/guests/). New households are 0, so they sort first.",
+    )
 
     class Meta(TimestampedModel.Meta):
-        ordering = ("name",)
+        ordering = ("sort_order", "name")
 
     def __str__(self) -> str:
         return self.name

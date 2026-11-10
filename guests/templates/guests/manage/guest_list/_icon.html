@@ -1,0 +1,16 @@
+{% comment %}A 16px stroke icon. `name`: grip, up, down, edit, trash, move. Decorative: label the button instead.{% endcomment %}
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    {% if name == "grip" %}
+    <circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" />
+    {% elif name == "up" %}
+    <path d="M6 15l6-6 6 6" />
+    {% elif name == "down" %}
+    <path d="M6 9l6 6 6-6" />
+    {% elif name == "edit" %}
+    <path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" />
+    {% elif name == "trash" %}
+    <path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" />
+    {% elif name == "move" %}
+    <path d="M7 7h13l-4-4M17 17H4l4 4" />
+    {% endif %}
+</svg>
