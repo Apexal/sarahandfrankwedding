@@ -5,13 +5,16 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+# Nothing by default; each job asks for what it needs, so the deploy job (which
+# holds FLY_API_TOKEN) never also holds a repo-write token.
+permissions: {}
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -26,7 +29,7 @@ jobs:
         if: steps.release.outputs.prs_created == 'true'
         with:
           ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
-      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v7
         if: steps.release.outputs.prs_created == 'true'
       - name: Update uv.lock
         if: steps.release.outputs.prs_created == 'true'
@@ -46,18 +49,25 @@ jobs:
 
   test:
     uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
 
   deploy-production:
     name: Deploy to production
     needs: [release-please, test]
     if: needs.release-please.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
+    # Lets GitHub restrict FLY_API_TOKEN to this environment (and to main) —
+    # move the secret there and add protection rules in the repo settings.
+    environment: production
+    permissions:
+      contents: read
     concurrency:
       group: fly-deploy
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: superfly/flyctl-actions/setup-flyctl@1.6
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
