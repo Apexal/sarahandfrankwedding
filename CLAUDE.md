@@ -69,11 +69,11 @@ The `extends` toolbar includes `sourceEditing` (raw HTML), which is safe only wh
 
 ## Deployment
 
-Fly.io single-machine deploy (production + staging apps) backed by Postgres; `entry.sh` supervises migrations, the `steady_queue` worker, and gunicorn. Details in `.claude/rules/deploy.md` (loaded automatically when touching `fly*.toml`, `entry.sh`, `Dockerfile`, or `.github/`).
+Fly.io single-machine production deploy backed by Postgres, deployed by `.github/workflows/fly-deploy.yml` on every merge to `main` after tests pass (there is no staging); `entry.sh` supervises migrations, the `steady_queue` worker, and gunicorn. Details in `.claude/rules/deploy.md` (loaded automatically when touching `fly*.toml`, `entry.sh`, `Dockerfile`, or `.github/`).
 
 ## Conventions
 
-- **Conventional Commits are enforced** via `conventional-pre-commit` (commit-msg stage) and feed `release-please` for versioning. `feat:` → minor, `fix:` → patch, `feat!:`/`BREAKING CHANGE:` → major. See `RELEASING.md`.
+- **Conventional Commits are enforced** via `conventional-pre-commit` (commit-msg stage). There are no releases or version bumps: every merge to `main` deploys.
 - **Pre-commit hooks** run ruff (lint + format), djlint (Django templates), and on `post-merge` automatically run `migrate` and rebuild Tailwind. Don't bypass with `--no-verify`.
 - **Ruff config** is in `pyproject.toml`: line length 120, target py314, isort knows `core`, `messaging`, `pages`, and `guests` as first-party.
 - **Tests** live as `tests.py` or `test_*.py`; classes start with `Test`, functions with `test_`. Shared fixtures live in the root `conftest.py`: `user`, `staff_user`, `admin_user` (verified users; plaintext password on `.raw_password`), and `user_client` (logged-in regular user). Use pytest-django's `client`/`admin_client` for HTTP tests. The cache is cleared automatically between tests (LocMemCache would otherwise leak the `WeddingSettings` singleton across tests), and warnings are errors (`filterwarnings = ["error"]`).

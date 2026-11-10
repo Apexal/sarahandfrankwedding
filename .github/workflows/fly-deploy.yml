@@ -1,7 +1,7 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
-# Production deploys are handled by the Release Please workflow.
+# Every merge to main deploys production once the test suite passes.
 
-name: Fly Deploy Staging
+name: Fly Deploy
 
 on:
   push:
@@ -15,17 +15,19 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  deploy-staging:
-    name: Deploy to staging
+  deploy-production:
+    name: Deploy to production
     needs: test
     runs-on: ubuntu-latest
-    environment: staging
+    # Lets GitHub restrict FLY_API_TOKEN to this environment (and to main) —
+    # move the secret there and add protection rules in the repo settings.
+    environment: production
     concurrency:
       group: fly-deploy
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: superfly/flyctl-actions/setup-flyctl@1.6
-      - run: flyctl deploy --remote-only --ha=false --config fly.staging.toml
+      - run: flyctl deploy --remote-only --ha=false
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_STAGING_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
