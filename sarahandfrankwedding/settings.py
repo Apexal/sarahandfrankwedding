@@ -176,11 +176,17 @@ EMAIL_RECIPIENT_ALLOWLIST = [
     address.strip().lower() for address in os.getenv("EMAIL_RECIPIENT_ALLOWLIST", "").split(",") if address.strip()
 ]
 
+# Django 6.1+ mailer config; the legacy EMAIL_BACKEND/EMAIL_FILE_PATH settings are
+# deprecated and must not appear alongside MAILERS.
 if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-    EMAIL_FILE_PATH = "sent-emails/"
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.filebased.EmailBackend",
+            "OPTIONS": {"file_path": "sent-emails/"},
+        }
+    }
 else:
-    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    MAILERS = {"default": {"BACKEND": "anymail.backends.resend.EmailBackend"}}
 ANYMAIL = {
     "RESEND_API_KEY": os.environ.get("RESEND_API_KEY", ""),
     # Resend tracking webhook at /anymail/resend/tracking/ (bounces, complaints): a random

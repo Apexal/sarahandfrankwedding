@@ -41,6 +41,8 @@ class TestRateLimit:
         assert not is_rate_limited(self._request(ip="198.51.100.1"), scope="t", count=2, seconds=60)
         assert not is_rate_limited(request, scope="other", count=2, seconds=60)
 
+    # The 429 page goes through the `wedding` context processor, which loads WeddingSettings.
+    @pytest.mark.django_db
     @override_settings(TESTING=False)
     def test_decorator_renders_429_after_the_limit(self):
         @ratelimit("1/m", scope="decorated")
