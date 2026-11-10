@@ -1,0 +1,14 @@
+{% comment %}One draggable guest, at a table or in the pool. The name opens the "seat at…" dialog.{% endcomment %}
+<li data-seat-guest data-id="{{ seat.guest.pk }}" data-status="{{ seat.status }}"
+    class="flex cursor-grab items-center gap-2 rounded border border-base-300 bg-base-100 px-2 py-1 text-sm leading-snug">
+    <span class="size-2 shrink-0 rounded-full {% if seat.status == 'declined' %}bg-error{% elif seat.status == 'no_rsvp' %}bg-base-300{% else %}bg-primary{% endif %}" aria-hidden="true"></span>
+    <button type="button" class="min-w-0 flex-1 truncate text-left hover:underline"
+            hx-get="{% url 'manage:seat_guest' seat.guest.pk %}" hx-target="#gl-modal-body"
+            title="{{ seat.guest.household.name }}">
+        {% if seat.guest.full_name %}{{ seat.guest.full_name }}{% else %}<span class="italic opacity-80">{{ seat.guest.display_name }}</span>{% endif %}
+    </button>
+    {% if seat.guest.is_child %}<span class="badge badge-info badge-xs">child</span>{% endif %}
+    {% if seat.meal %}<span class="badge badge-ghost badge-xs max-w-24 truncate">{{ seat.meal }}</span>{% endif %}
+    {% if seat.status == "declined" %}<span class="badge badge-error badge-xs">declined</span>
+    {% elif seat.status == "no_rsvp" and reception %}<span class="badge badge-outline badge-xs">no RSVP</span>{% endif %}
+</li>

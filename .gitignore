@@ -28,3 +28,4 @@ received-webhooks/*.json
 # Local guest-data backups and media (real guest data; never commit)
 backups/
 media/
+notion_guests_export.csv

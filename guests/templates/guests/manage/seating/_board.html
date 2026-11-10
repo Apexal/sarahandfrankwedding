@@ -1,0 +1,88 @@
+{% comment %}
+Everything below the toolbar: summary, warnings, the tables, and the unseated pool. Every write answers with
+this whole fragment (hx-swap outerHTML on #seating-board). static/js/seating.js reads:
+- `[data-seat-tables]` + `data-reorder-url`: the table grid, dragged by `.seat-table-handle`;
+- `[data-seat-list]` + `data-table` (blank = unseated): drop targets for guests and households;
+- `[data-seat-guest]` + `data-id`, and `[data-seat-household]` + `data-guest-ids`: what gets dragged.
+{% endcomment %}
+<div id="seating-board" class="mt-4" data-assign-url="{% url 'manage:seat_assign' %}">
+    {% if notice %}
+    <div role="status" class="alert alert-info mb-4 text-sm"><span>{{ notice }}</span></div>
+    {% endif %}
+
+    {% if reception %}
+    <p>
+        {{ reception.name }}: <strong>{{ seated_count }}</strong> seated, {{ attending_count }} attending,
+        {{ capacity }} seat{{ capacity|pluralize }} across {{ cards|length }} table{{ cards|length|pluralize }}.
+    </p>
+    {% else %}
+    <div role="alert" class="alert alert-warning">
+        <span>No RSVP-required event exists yet, so nobody counts as attending and every guest is in the pool.</span>
+    </div>
+    {% endif %}
+
+    {% if warnings %}
+    <details class="mt-4 rounded-box border border-warning/60 bg-warning/10 p-3" {% if warnings|length <= 6 %}open{% endif %}>
+        <summary class="cursor-pointer font-semibold">Needs attention ({{ warnings|length }})</summary>
+        <ul class="mt-2 space-y-1 text-sm">
+            {% for warning in warnings %}
+            <li class="flex flex-wrap gap-x-2">
+                <span>{{ warning.message }}</span>
+                <a href="{{ warning.url }}" class="link opacity-80">admin</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </details>
+    {% endif %}
+
+    <div class="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section aria-labelledby="tables-heading">
+            <h2 id="tables-heading" class="sr-only">Tables</h2>
+            <div class="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                 data-seat-tables data-reorder-url="{% url 'manage:tables_reorder' %}">
+                {% for card in cards %}
+                {% include "guests/manage/seating/_table.html" %}
+                {% empty %}
+                <div class="rounded-box border border-dashed border-base-300 p-6 text-center sm:col-span-2 xl:col-span-3">
+                    <p>No tables yet.</p>
+                    <button type="button" class="btn btn-sm btn-primary mt-3" hx-get="{% url 'manage:table_add' %}" hx-target="#gl-modal-body">Add the first table</button>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <aside aria-labelledby="pool-heading" class="rounded-box bg-base-200 p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+            <h2 id="pool-heading" class="text-lg font-semibold">Unseated ({{ pool_count }})</h2>
+            <p class="text-xs opacity-70">
+                {% if reception %}Invited to {{ reception.name }} and not declined.{% else %}Every guest without a table.{% endif %}
+            </p>
+            <ul data-seat-list data-table="" aria-label="Drop here to unseat"
+                class="mt-3 flex min-h-10 items-center justify-center rounded border-2 border-dashed border-base-300 text-xs opacity-70">
+                <li class="pointer-events-none">Drop here to unseat</li>
+            </ul>
+            <div class="mt-3 space-y-2" data-seat-pool>
+                {% for group in pool %}
+                <div data-seat-household data-guest-ids="{{ group.guest_ids }}"
+                     data-search="{{ group.household.name|lower }}{% for seat in group.guests %} {{ seat.guest.display_name|lower }}{% endfor %}"
+                     class="rounded border border-base-300 bg-base-100 p-2">
+                    <p class="flex items-center gap-1 text-sm font-semibold">
+                        <span class="seat-household-handle inline-flex h-6 w-5 shrink-0 cursor-grab items-center justify-center opacity-60 hover:opacity-100" title="Drag onto a table to seat the whole household">
+                            {% include "guests/manage/guest_list/_icon.html" with name="grip" %}
+                        </span>
+                        <span class="min-w-0 flex-1 truncate">{{ group.household.name }}</span>
+                        <span class="text-xs font-normal opacity-60">{{ group.guests|length }}</span>
+                    </p>
+                    <ul data-seat-list data-table="" class="mt-1 space-y-1">
+                        {% for seat in group.guests %}
+                        {% include "guests/manage/seating/_chip.html" %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% empty %}
+                <p class="text-sm">Nobody left to seat.</p>
+                {% endfor %}
+                <p data-seat-pool-empty class="hidden text-sm">No unseated guests match.</p>
+            </div>
+        </aside>
+    </div>
+</div>

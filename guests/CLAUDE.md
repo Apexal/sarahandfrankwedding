@@ -28,7 +28,11 @@ and the guest list editor.
   `rsvps_lost_by_uninvite()` first and show a confirm. Empty households are kept. Deletes with something to
   lose (`household_stakes()` / `guest_stakes()`) need the name typed. Confirmations render into the page's
   `<dialog>` via `HX-Retarget`, never a browser dialog; JS is `static/js/guest-list.js` (CSP: no inline).
-- **Seating is reception-only.** `Guest.table` is one assignment per guest.
+- **Seating is reception-only.** `Guest.table` is one assignment per guest. The editor at `/manage/seating/`
+  puts every write through `guests/seating.py` and answers with the whole board (`seating/_board.html`)
+  re-rendered, so counts and warnings never drift. Capacity is warned about, never enforced. The pool is
+  reception-invited guests with no table who have not declined. JS is `static/js/seating.js`; it reuses the
+  guest list editor's `#gl-modal` dialog and error banner from `static/js/guest-list.js`.
 - **Import** is `guests.resources.GuestResource`: one row per guest, household columns repeated, first row
   wins the household fields, `events` is semicolon-separated slugs that must already exist. Guests match on
   (household, first_name, last_name).

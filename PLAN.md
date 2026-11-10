@@ -14,6 +14,11 @@ second is hard.
 
 ## 0. Change log
 
+**v10 (2026-11-10, later).** A visual seating editor replaces the read-only `/manage/seating/` page
+(section 8, "Seating"): each table drawn as a ring of seats, an unseated pool beside them, drag-and-drop
+(SortableJS) for guests, whole households, and table order, a "seat at…" dialog as the keyboard path, and
+tables added, edited, and deleted in place. Decision 15 is revised; no model changes.
+
 **v9 (2026-11-10).** A visual guest list editor at `/manage/guests/` (section 8, "Guest list editor"):
 households as cards with their guests inside, drag-and-drop ordering (SortableJS) for households and for
 guests within and between households, a plus-one toggle, one-line quick add, in-place editing of names,
@@ -103,8 +108,7 @@ the starter: bounce handling uses anymail's tracking webhook; `anymail` is only 
 - Guest accounts of any kind. `AppSettings.allow_registration` stays off forever; allauth exists only so the
   two of us can log in.
 - Sending SMS from the system. Texts go from our own phones using links the system prepares (section 10).
-- Hosting guest photos. Registry (external links only). Drag-and-drop seating (assignment is a dropdown per
-  guest). Gift tracking. Multi-language. Native app. Anything we would not be embarrassed to do by hand for a
+- Hosting guest photos. Registry (external links only). Gift tracking. Multi-language. Native app. Anything we would not be embarrassed to do by hand for a
   one-time event.
 
 **Honest framing.** Zola, Joy, and The Knot give the site, RSVP, digital save-the-dates, and guest list away
@@ -608,7 +612,16 @@ in Phase 2b, RSVP sections in Phase 3):
   `qrcode` with its SVG image factory so Pillow is not needed. Print from the browser.
 - Server-rendered DaisyUI, no chart library. Linked from the admin index and the staff nav.
 
-**Seating (Phase 5, July 2027).** Reception only, no drag and drop.
+**Seating (Phase 5, July 2027).** Reception only. Since v10 `/manage/seating/` is a visual editor (views in
+`guests/views/seating.py`, rules in `guests/seating.py`, JS in `static/js/seating.js`): each table is a ring of
+seats (filled clockwise, empty chairs dashed, overflow seats ringed in red) above its guest list; the unseated
+pool on the right holds guests invited to the reception who have not declined it, so seating can start
+before RSVPs arrive, with a search and an "only yes" filter. Drag a guest onto a table or back to the pool,
+drag a household by its grip to seat it together, drag tables by their grip to reorder. Clicking a name or a
+seat opens a "seat at…" dialog (with "bring along" for the rest of the household) for keyboards and phones.
+Tables are added, edited, and deleted in a dialog; deleting returns its guests to the pool. Every write
+re-renders the whole board. Capacity is never enforced, only warned about. The original spec follows; the
+admin dropdown below still works.
 
 - `TableAdmin`: name, capacity, order, notes, and a read-only inline of assigned guests.
 - Assignment happens in the `GuestAdmin` changelist: filter to guests attending the reception, pick a
@@ -953,7 +966,7 @@ not code:
 | 12 | Save-the-date link token | Reuse `Household.invite_code`; codes frozen from the send date | 2026-09-03 |
 | 13 | Timeline | Save-the-date 2026-09-30 (one year out); invitations mailed late Jan to mid Feb 2027; print freeze 2027-01-05 | 2026-09-03 |
 | 14 | First-send channel | Texts primary, email campaign at 25 per day secondary, because the domain is three weeks old | 2026-09-03 |
-| 15 | Seating | Minimal in-system: `Table` + `Guest.table`, dropdown assignment in the admin, `/manage/seating/` with warnings, export; no drag and drop; reception only | 2026-09-03 |
+| 15 | Seating | Minimal in-system: `Table` + `Guest.table`, `/manage/seating/` with warnings, export; reception only. Revised in v10: a visual drag-and-drop editor on that page (SortableJS, as in decision 19); the admin dropdown stays | 2026-11-10 |
 | 16 | Gate timing | Off until the invitations mail; password page points to the invitation and `contact_email`; every guest email footer carries the personal link | 2026-09-03 |
 | 17 | Starter features | Removed auditlog, impersonation, roles, registration switch, per-user timezone, profile page, API leftovers, faker seeding; kept staff MFA, structlog | 2026-09-03 |
 | 19 | Guest list editor | `/manage/guests/` with drag-and-drop (SortableJS, vendored) for households and guests; RSVPs that no longer apply are deleted after a warning; empty households kept | 2026-11-10 |

@@ -3,16 +3,30 @@ name: CI
 on:
   pull_request:
   workflow_call:
+  # Advisories are published after code merges; re-audit a quiet repo weekly.
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
 jobs:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      # Fails on any known vulnerability in uv.lock (OSV). To accept one
+      # deliberately, add `--ignore <ID>` with a comment saying why.
+      - run: uv audit --locked
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -22,8 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SECRET_KEY: ci-only-not-a-real-secret
+      ENV: development
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
       - name: Check for missing migrations
         run: uv run ./manage.py makemigrations --check

@@ -390,10 +390,9 @@ class TestSeating:
         unassigned = [seat["guest"].pk for group in response.context["unassigned"] for seat in group["guests"]]
         assert unassigned == [seated.carol.pk]  # Eve has no RSVP row, so she is not unassigned yet
         assert response.context["unassigned_count"] == 1
-        assert f"attending={seated.reception.pk}" in response.context["assign_url"]
 
         html = response.content.decode()
-        assert "Declined" in html
+        assert "declined" in html
         assert reverse("admin:guests_guest_change", args=[seated.carol.pk]) in html
 
     def test_no_rsvp_event_means_no_rsvp_warnings(self, admin_client, seated):
@@ -421,3 +420,108 @@ class TestSeating:
     def test_empty_seating(self, admin_client):
         assert admin_client.get(reverse("manage:seating")).status_code == 200
         assert admin_client.get(reverse("manage:seating_print")).status_code == 200
+
+
+@pytest.mark.django_db
+class TestSeatingEditor:
+    def _board(self, response):
+        assert response.status_code == 200
+        return response.context
+
+    def test_pool_holds_invited_unseated_guests_who_have_not_declined(self, admin_client, seated):
+        context = admin_client.get(reverse("manage:seating")).context
+        pool = {seat["guest"].pk for group in context["pool"] for seat in group["guests"]}
+        assert seated.carol.pk in pool  # attending, no table
+        assert seated.eve.pk in pool  # no RSVP yet: plannable
+        assert seated.dan.pk not in pool and seated.alice.pk not in pool  # seated
+        assert context["pool_count"] == len(pool)
+
+    def test_ring_draws_one_dot_per_seat_and_overflow(self, admin_client, seated):
+        cards = {card["table"].name: card for card in admin_client.get(reverse("manage:seating")).context["cards"]}
+        ring = cards["Table 1"]["ring"]  # 4 guests at 2 seats
+        assert len(ring) == 4
+        assert [dot["extra"] for dot in ring] == [False, False, True, True]
+        assert (ring[0]["x"], ring[0]["y"]) == (50.0, 9.0)  # twelve o'clock
+        ring2 = cards["Table 2"]["ring"]  # 1 guest at 4 seats
+        assert len(ring2) == 4 and ring2[0]["seat"] and ring2[1]["seat"] is None
+
+    def test_assign_seats_and_unseats(self, admin_client, seated):
+        url = reverse("manage:seat_assign")
+        response = admin_client.post(url, {"guest": [seated.carol.pk, seated.eve.pk], "table": seated.table2.pk})
+        context = self._board(response)
+        assert "gl-close-modal" in response["HX-Trigger-After-Swap"]
+        assert set(Guest.objects.filter(table=seated.table2).values_list("pk", flat=True)) == {
+            seated.bob.pk,
+            seated.carol.pk,
+            seated.eve.pk,
+        }
+        assert 'id="seating-board"' in response.content.decode()
+        assert context["unassigned_count"] == 0
+
+        self._board(admin_client.post(url, {"guest": seated.carol.pk, "table": ""}))
+        seated.carol.refresh_from_db()
+        assert seated.carol.table is None
+
+    def test_assign_with_stale_ids_changes_nothing(self, admin_client, seated):
+        url = reverse("manage:seat_assign")
+        context = self._board(admin_client.post(url, {"guest": [seated.carol.pk, 99999], "table": seated.table2.pk}))
+        assert "removed" in context["notice"]
+        seated.carol.refresh_from_db()
+        assert seated.carol.table is None
+        context = self._board(admin_client.post(url, {"guest": seated.carol.pk, "table": 99999}))
+        assert "no longer exists" in context["notice"]
+        assert admin_client.post(url, {"table": seated.table2.pk}).status_code == 400
+
+    def test_seat_dialog(self, admin_client, seated):
+        response = admin_client.get(reverse("manage:seat_guest", args=[seated.alice.pk]))
+        assert response.status_code == 200
+        assert response["HX-Retarget"] == "#gl-modal-body"
+        html = response.content.decode()
+        assert "Seat Alice Confirmed" in html and "Bob Confirmed" in html  # household offered
+        assert "Table 1" in html and "Table 2" in html and "Unseat" in html
+
+    def test_add_edit_delete_table(self, admin_client, seated):
+        response = admin_client.get(reverse("manage:table_add"))
+        assert 'value="Table 3"' in response.content.decode()
+        response = admin_client.post(reverse("manage:table_add"), {"name": " Head  table ", "capacity": 6})
+        self._board(response)
+        head = Table.objects.get(name="Head table")
+        assert head.order == 3  # last
+
+        response = admin_client.post(reverse("manage:table_add"), {"name": "head table", "capacity": 6})
+        assert response["HX-Retarget"] == "#gl-modal-body"
+        assert "already has that name" in response.content.decode()
+
+        self._board(admin_client.post(reverse("manage:table_edit", args=[head.pk]), {"name": "Head", "capacity": 8}))
+        head.refresh_from_db()
+        assert (head.name, head.capacity) == ("Head", 8)
+
+        response = admin_client.get(reverse("manage:table_delete", args=[seated.table1.pk]))
+        assert "Alice Confirmed" in response.content.decode()
+        self._board(admin_client.post(reverse("manage:table_delete", args=[seated.table1.pk])))
+        assert not Table.objects.filter(pk=seated.table1.pk).exists()
+        seated.alice.refresh_from_db()
+        assert seated.alice.table is None
+
+    def test_reorder_tables(self, admin_client, seated):
+        url = reverse("manage:tables_reorder")
+        response = admin_client.post(url, {"order": [seated.table2.pk, seated.table1.pk]})
+        assert response.status_code == 204
+        assert list(Table.objects.values_list("pk", flat=True)) == [seated.table2.pk, seated.table1.pk]
+        context = self._board(admin_client.post(url, {"order": [seated.table2.pk]}))
+        assert "changed" in context["notice"]
+
+    def test_htmx_refresh_returns_only_the_board(self, admin_client, seated):
+        response = admin_client.get(
+            reverse("manage:seating"), headers={"HX-Request": "true", "HX-Target": "seating-board"}
+        )
+        html = response.content.decode()
+        assert html.lstrip().startswith('<div id="seating-board"')
+
+    def test_expired_session_on_htmx_reloads_to_login_and_back(self, client, seated):
+        response = client.post(
+            reverse("manage:seat_assign"),
+            {"guest": seated.carol.pk, "table": seated.table1.pk},
+            headers={"HX-Request": "true", "HX-Current-URL": "http://testserver/manage/seating/"},
+        )
+        assert "next=%2Fmanage%2Fseating%2F" in response["HX-Redirect"]

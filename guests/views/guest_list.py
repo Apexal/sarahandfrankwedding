@@ -15,6 +15,7 @@ from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, render, resolve_url
 from django.template.loader import render_to_string
+from django.utils.http import urlencode
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect, reswap, retarget, trigger_client_event
 
@@ -36,14 +37,15 @@ CLOSE_MODAL = "gl-close-modal"
 
 def staff_member_required(view):
     """`staff_member_required`, but an HTMX request from an expired session reloads the whole page to the
-    login, instead of following the redirect and swapping the login page into a card or the dialog."""
+    login (and back to the page it came from), instead of following the redirect and swapping the login page into a card or the dialog."""
     protected = _staff_member_required(view)
 
     @wraps(view)
     def wrapper(request, *args, **kwargs):
         if request.htmx and not (request.user.is_active and request.user.is_staff):
             logger.warning("guest_list_session_expired", path=request.path)
-            return HttpResponseClientRedirect(f"{resolve_url('admin:login')}?next={resolve_url('manage:guest_list')}")
+            back = request.htmx.current_url_abs_path or resolve_url("manage:guest_list")
+            return HttpResponseClientRedirect(f"{resolve_url('admin:login')}?{urlencode({'next': back})}")
         return protected(request, *args, **kwargs)
 
     return wrapper

@@ -1,0 +1,39 @@
+{% comment %}"Seat at…": the keyboard and phone way to seat a guest. The clicked table button is the `table` value.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">Seat {{ guest.display_name }}</h3>
+<p class="mt-1 text-sm opacity-80">
+    {{ guest.household.name }} · {% if guest.table %}now at {{ guest.table.name }}{% else %}not seated{% endif %}
+</p>
+<form class="mt-4" hx-post="{% url 'manage:seat_assign' %}" hx-target="#seating-board" hx-swap="outerHTML">
+    <input type="hidden" name="guest" value="{{ guest.pk }}" />
+    {% if household_others %}
+    <fieldset class="mb-4">
+        <legend class="text-sm">Bring along from {{ guest.household.name }}</legend>
+        <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            {% for other in household_others %}
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" class="checkbox checkbox-xs" name="guest" value="{{ other.pk }}" />
+                <span>{{ other.display_name }}{% if other.table %} <span class="opacity-60">({{ other.table.name }})</span>{% endif %}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+    {% endif %}
+    {% if tables %}
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {% for row in tables %}
+        <button type="submit" name="table" value="{{ row.table.pk }}"
+                class="btn btn-sm h-auto flex-col gap-0 py-2 {% if row.table.pk == guest.table_id %}btn-primary{% elif row.used >= row.table.capacity %}btn-outline btn-error{% else %}btn-outline{% endif %}"
+                {% if forloop.first %}autofocus{% endif %}>
+            <span class="max-w-full truncate">{{ row.table.name }}</span>
+            <span class="text-xs font-normal tabular-nums">{{ row.used }} / {{ row.table.capacity }}</span>
+        </button>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm">There are no tables yet.</p>
+    {% endif %}
+    <div class="modal-action">
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close>Cancel</button>
+        {% if guest.table %}<button type="submit" name="table" value="" class="btn btn-sm">Unseat</button>{% endif %}
+    </div>
+</form>

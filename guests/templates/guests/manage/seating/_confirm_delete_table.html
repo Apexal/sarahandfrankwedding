@@ -1,0 +1,16 @@
+{% comment %}Delete a table. Its guests go back to the unseated pool; nothing else is lost, so no typed confirmation.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">Delete {{ table.name }}?</h3>
+{% if guests %}
+<p class="mt-2 text-sm">These {{ guests|length }} guest{{ guests|length|pluralize }} go back to the unseated list:</p>
+<ul class="mt-1 list-disc pl-5 text-sm">
+    {% for guest in guests %}<li>{{ guest.display_name }} <span class="opacity-60">({{ guest.household.name }})</span></li>{% endfor %}
+</ul>
+{% else %}
+<p class="mt-2 text-sm">Nobody is seated there.</p>
+{% endif %}
+<form hx-post="{{ action }}" hx-target="#seating-board" hx-swap="outerHTML">
+    <div class="modal-action">
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close autofocus>Cancel</button>
+        <button type="submit" class="btn btn-error btn-sm">Delete</button>
+    </div>
+</form>

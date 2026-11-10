@@ -1,0 +1,18 @@
+{% comment %}Add or edit a table. Valid posts answer with the board and close the dialog; invalid ones re-render here.{% endcomment %}
+<h3 id="gl-modal-title" class="text-lg font-semibold">{% if table %}Edit {{ table.name }}{% else %}Add a table{% endif %}</h3>
+<form class="mt-4 space-y-3" hx-post="{{ action }}" hx-target="#seating-board" hx-swap="outerHTML">
+    <div class="grid grid-cols-[1fr_6rem] gap-3">
+        {% include "guests/manage/guest_list/_field.html" with field=form.name %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.capacity %}
+    </div>
+    {% include "guests/manage/guest_list/_field.html" with field=form.notes %}
+    {% for error in form.non_field_errors %}<p class="text-xs text-error">{{ error }}</p>{% endfor %}
+    <div class="modal-action">
+        {% if table %}
+        <button type="button" class="btn btn-ghost btn-sm text-error mr-auto"
+                hx-get="{% url 'manage:table_delete' table.pk %}" hx-target="#gl-modal-body">Delete table</button>
+        {% endif %}
+        <button type="button" class="btn btn-ghost btn-sm" data-gl-close>Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">{% if table %}Save{% else %}Add table{% endif %}</button>
+    </div>
+</form>

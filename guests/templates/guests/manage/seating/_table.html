@@ -1,0 +1,50 @@
+{% comment %}
+One table: the ring of seats (guests clockwise from twelve o'clock, then empty chairs; an over-full table
+grows red seats) and the drop list of its guests. `card` comes from guests.views.seating.build_seating.
+{% endcomment %}
+<article id="table-{{ card.table.pk }}" data-seat-table data-id="{{ card.table.pk }}"
+         class="card rounded-box bg-base-200{% if card.over %} border border-error{% endif %}">
+    <div class="card-body gap-3 p-4">
+        <h3 class="flex items-center gap-1 font-semibold">
+            <span class="seat-table-handle inline-flex h-7 w-5 shrink-0 cursor-grab items-center justify-center opacity-60 hover:opacity-100" title="Drag to reorder tables">
+                {% include "guests/manage/guest_list/_icon.html" with name="grip" %}
+            </span>
+            <span class="min-w-0 flex-1 truncate">{{ card.table.name }}</span>
+            <span class="text-sm tabular-nums{% if card.over %} text-error{% endif %}">{{ card.used }} / {{ card.table.capacity }}</span>
+            <button type="button" class="btn btn-ghost btn-xs btn-square" aria-label="Edit {{ card.table.name }}"
+                    hx-get="{% url 'manage:table_edit' card.table.pk %}" hx-target="#gl-modal-body">
+                {% include "guests/manage/guest_list/_icon.html" with name="edit" %}
+            </button>
+        </h3>
+
+        <div class="relative mx-auto aspect-square w-44" role="img"
+             aria-label="{{ card.table.name }}: {{ card.used }} of {{ card.table.capacity }} seats taken{% if card.over %}, over capacity{% endif %}">
+            <div class="absolute inset-[24%] flex flex-col items-center justify-center rounded-full border border-base-300 bg-base-100 text-center shadow-sm">
+                <span class="text-xl leading-none font-semibold tabular-nums{% if card.over %} text-error{% endif %}">{{ card.used }}</span>
+                <span class="text-[10px] uppercase tracking-wide opacity-60">{% if card.over %}over{% else %}{{ card.free }} free{% endif %}</span>
+            </div>
+            {% for dot in card.ring %}
+            {% if dot.seat %}
+            <button type="button" style="left: {{ dot.x }}%; top: {{ dot.y }}%"
+                    class="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full font-semibold {% if card.large %}size-5 text-[8px]{% else %}size-7 text-[10px]{% endif %} {% if dot.seat.status == 'declined' %}bg-error text-error-content{% elif dot.seat.status == 'no_rsvp' %}bg-base-300 text-base-content{% else %}bg-primary text-primary-content{% endif %}{% if dot.extra %} ring-2 ring-error ring-offset-1 ring-offset-base-200{% endif %}"
+                    title="{{ dot.seat.guest.display_name }}{% if dot.seat.meal %} · {{ dot.seat.meal }}{% endif %}"
+                    aria-label="Seat {{ dot.seat.guest.display_name }} somewhere else"
+                    hx-get="{% url 'manage:seat_guest' dot.seat.guest.pk %}" hx-target="#gl-modal-body">{{ dot.seat.initials }}</button>
+            {% else %}
+            <span style="left: {{ dot.x }}%; top: {{ dot.y }}%" aria-hidden="true"
+                  class="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-base-300 bg-base-100 {% if card.large %}size-5{% else %}size-7{% endif %}"></span>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <ul data-seat-list data-table="{{ card.table.pk }}" aria-label="Guests at {{ card.table.name }}"
+            class="min-h-12 space-y-1 rounded border-2 border-dashed border-transparent p-1">
+            {% for seat in card.seats %}
+            {% include "guests/manage/seating/_chip.html" %}
+            {% empty %}
+            <li class="pointer-events-none py-3 text-center text-xs opacity-60">Drop guests here</li>
+            {% endfor %}
+        </ul>
+        {% if card.table.notes %}<p class="text-xs whitespace-pre-line opacity-80">{{ card.table.notes }}</p>{% endif %}
+    </div>
+</article>
