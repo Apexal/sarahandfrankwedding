@@ -12,8 +12,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/checkout@v9.0.0
+      - uses: actions/checkout@v7.0.1
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -24,8 +23,7 @@ jobs:
     env:
       SECRET_KEY: ci-only-not-a-real-secret
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/checkout@v9.0.0
+      - uses: actions/checkout@v7.0.1
       - run: uv sync --locked
       - name: Check for missing migrations
         run: uv run ./manage.py makemigrations --check

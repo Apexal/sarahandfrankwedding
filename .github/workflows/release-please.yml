@@ -26,7 +26,7 @@ jobs:
         if: steps.release.outputs.prs_created == 'true'
         with:
           ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
-      - uses: actions/checkout@v9.0.0
+      - uses: actions/checkout@v7.0.1
         if: steps.release.outputs.prs_created == 'true'
       - name: Update uv.lock
         if: steps.release.outputs.prs_created == 'true'
