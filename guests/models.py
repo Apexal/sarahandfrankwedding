@@ -44,6 +44,14 @@ def normalize_name(value: str) -> str:
     return _NON_WORD.sub(" ", without_marks.casefold()).strip()
 
 
+def join_names(names: list[str]) -> str:
+    """ "George", "George & Grace", "George, Grace, & Annette": an ampersand before the last name, with a
+    serial comma once there are three or more."""
+    if len(names) <= 2:
+        return " & ".join(names)
+    return f"{', '.join(names[:-1])}, & {names[-1]}"
+
+
 def split_names(names: str) -> list[tuple[str, str]]:
     """Split free-text names into (first, last) pairs.
 
@@ -231,9 +239,9 @@ class Household(TimestampedModel):
 
     @property
     def contact_names(self) -> str:
-        """First names of the named guests, "Bob & Carol"; falls back to the household name."""
+        """First names of the named guests, "Bob & Carol" or "Bob, Carol, & Ann"; falls back to the household name."""
         names = [guest.first_name for guest in self.guests.all() if guest.first_name and not guest.is_plus_one]
-        return " & ".join(names) if names else self.name
+        return join_names(names) if names else self.name
 
     def save_the_date_message(self, wedding: WeddingSettings | None = None) -> str:
         """The text message we send from our phones with this household's link."""

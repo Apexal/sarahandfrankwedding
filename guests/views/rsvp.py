@@ -30,7 +30,7 @@ from guests.email_contexts import (
 )
 from guests.forms.rsvp import CodeLookupForm, NameLookupForm, build_rsvp_form, open_rsvp_events
 from guests.matching import find_household_by_code, find_households
-from guests.models import Event, Household, Rsvp, RsvpAnswer
+from guests.models import Event, Household, Rsvp, RsvpAnswer, join_names
 from messaging.services import EmailTemplateService, EmailTemplateServiceError
 from pages.models import WeddingSettings
 
@@ -117,7 +117,7 @@ def _candidate_rows(candidates: list[Household]) -> list[dict]:
     rows = []
     for household in candidates:
         first_names = [g.first_name for g in household.guests.all() if g.first_name and not g.is_plus_one]
-        rows.append({"household": household, "first_names": " & ".join(first_names)})
+        rows.append({"household": household, "first_names": join_names(first_names)})
     return rows
 
 

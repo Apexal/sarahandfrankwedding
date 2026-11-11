@@ -631,3 +631,28 @@ class TestAdmin:
     def test_guest_import_page_loads(self, admin_client):
         assert admin_client.get(reverse("admin:guests_guest_import")).status_code == 200
         assert admin_client.get(reverse("admin:guests_household_export")).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        ([], ""),
+        (["George"], "George"),
+        (["George", "Grace"], "George & Grace"),
+        (["George", "Grace", "Annette"], "George, Grace, & Annette"),
+        (["A", "B", "C", "D"], "A, B, C, & D"),
+    ],
+)
+def test_join_names(names, expected):
+    from guests.models import join_names
+
+    assert join_names(names) == expected
+
+
+@pytest.mark.django_db
+def test_contact_names_uses_a_serial_comma():
+    household = Household.objects.create(name="The Matrangas")
+    for order, first in enumerate(("George", "Grace", "Annette")):
+        Guest.objects.create(household=household, first_name=first, last_name="Matranga", sort_order=order)
+    Guest.objects.create(household=household, is_plus_one=True, sort_order=9)
+    assert household.contact_names == "George, Grace, & Annette"
