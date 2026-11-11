@@ -1,0 +1,90 @@
+{% comment %}RSVPs by event, households responded, and the question roll-ups. Part of dashboard.html.{% endcomment %}
+<section class="mt-12 space-y-4" aria-labelledby="events-heading">
+    <h2 id="events-heading" class="font-display text-2xl">RSVPs by event</h2>
+    {% if events %}
+    <div class="grid gap-4 lg:grid-cols-2">
+        {% for row in events %}
+        <div class="card bg-base-200">
+            <div class="card-body gap-4 p-5">
+                <h3 class="font-sans font-semibold">{{ row.event.name }}</h3>
+                <div class="stats bg-base-100 w-full">
+                    <div class="stat px-4 py-2">
+                        <div class="stat-title">Invited</div>
+                        <div class="stat-value text-2xl tabular-nums">{{ row.invited }}</div>
+                    </div>
+                    <div class="stat px-4 py-2">
+                        <div class="stat-title">Yes</div>
+                        <div class="stat-value text-2xl tabular-nums text-success">{{ row.yes }}</div>
+                    </div>
+                    <div class="stat px-4 py-2">
+                        <div class="stat-title">No</div>
+                        <div class="stat-value text-2xl tabular-nums text-error">{{ row.no }}</div>
+                    </div>
+                    <div class="stat px-4 py-2">
+                        <div class="stat-title">Pending</div>
+                        <div class="stat-value text-2xl tabular-nums">{{ row.pending }}</div>
+                    </div>
+                </div>
+                {% include "guests/manage/_progress.html" with row=row.progress %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm opacity-70">No RSVP-required events yet.</p>
+    {% endif %}
+</section>
+
+<section class="mt-12 space-y-4" aria-labelledby="responses-heading">
+    <h2 id="responses-heading" class="font-display text-2xl">Households responded</h2>
+    <div class="card bg-base-200">
+        <div class="card-body gap-4 p-5">
+            {% include "guests/manage/_progress.html" with row=responses.progress.0 %}
+            <div class="grid gap-4 sm:grid-cols-3">
+                {% for row in responses.progress|slice:"1:" %}
+                {% include "guests/manage/_progress.html" with row=row %}
+                {% endfor %}
+            </div>
+            <p class="text-sm">
+                <span class="tabular-nums">{{ responses.non_responders }}</span> not yet responded:
+                <span class="tabular-nums">{{ responses.nudgeable }}</span> can be nudged by email,
+                <span class="tabular-nums">{{ responses.call }}</span> need a call
+                <span class="opacity-70">(no email, bounced, or opted out)</span>.
+            </p>
+        </div>
+    </div>
+</section>
+
+{% if questions %}
+<section class="mt-12 space-y-4" aria-labelledby="answers-heading">
+    <h2 id="answers-heading" class="font-display text-2xl">Answers</h2>
+    <div class="grid gap-4 lg:grid-cols-2">
+        {% for item in questions %}
+        <div class="card bg-base-200">
+            <div class="card-body gap-3 p-5">
+                <h3 class="font-sans font-semibold">
+                    {{ item.question.label }}
+                    <span class="badge badge-ghost badge-sm align-middle">{{ item.total }} answer{{ item.total|pluralize }}</span>
+                </h3>
+                {% if item.kind == "choices" %}
+                    {% for row in item.rows %}
+                    {% include "guests/manage/_progress.html" with row=row color="progress-secondary" %}
+                    {% endfor %}
+                {% else %}
+                    <ul class="space-y-2 text-sm">
+                        {% for answer in item.answers %}
+                        <li>
+                            <span class="font-semibold">{{ answer.who }}:</span>
+                            <span class="whitespace-pre-line">{{ answer.text }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="opacity-70">No answers yet.</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

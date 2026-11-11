@@ -186,9 +186,14 @@ def dashboard(request: AppRequest) -> HttpResponse:
     wedding = WeddingSettings.load()
     new_submissions = ContactSubmission.objects.filter(status=ContactSubmission.Status.NEW).count()
     submissions_url = f"{reverse('admin:guests_contactsubmission_changelist')}?{urlencode({'status__exact': 'new'})}"
+    events = _event_section()
     context = {
         "address": _address_section(),
-        "events": _event_section(),
+        "events": events,
+        # The summary row's attendance tile: the reception, else the first RSVP event (as seating picks).
+        "headline_event": next(
+            (row for row in events if row["event"].slug == "reception"), events[0] if events else None
+        ),
         "responses": _response_section(),
         "questions": _question_section(),
         "recent_rsvps": list(

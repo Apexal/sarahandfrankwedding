@@ -196,9 +196,24 @@ class TestDashboard:
         assert missing[data.missing.pk].emailed is True
         assert missing[data.bounced.pk].emailed is False
         html = response.content.decode()
-        assert data.missing.save_the_date_url in html
-        assert reverse("admin:guests_household_change", args=[data.missing.pk]) in html
+        assert f'data-copy="{data.missing.save_the_date_url}"' in html
+        assert f"{reverse('manage:guest_list')}?q={data.missing.invite_code}" in html
         assert "+13125550100" in html
+
+    def test_rsvp_sections_lead_once_rsvps_open(self, admin_client, data):
+        def order(html):
+            return html.index('id="addresses-heading"') < html.index('id="events-heading"')
+
+        assert order(admin_client.get(reverse("manage:dashboard")).content.decode())  # addresses first
+        wedding = WeddingSettings.load()
+        wedding.rsvp_open = True
+        wedding.save()
+        assert not order(admin_client.get(reverse("manage:dashboard")).content.decode())
+
+    @pytest.mark.parametrize("url_name", ["dashboard", "guest_list", "seating"])
+    def test_staff_nav_marks_the_current_page(self, admin_client, url_name):
+        html = admin_client.get(reverse(f"manage:{url_name}")).content.decode()
+        assert f'href="{reverse(f"manage:{url_name}")}" class="btn btn-sm btn-neutral" aria-current="page"' in html
 
     def test_question_rollups(self, admin_client, data):
         response = admin_client.get(reverse("manage:dashboard"))

@@ -1,8 +1,8 @@
 {% comment %}One labelled progress bar. `row` comes from `_progress()` in guests/views/manage.py.{% endcomment %}
-<div>
+<div {% if not row.total %}class="opacity-50"{% endif %}>
     <div class="flex justify-between gap-4 text-sm">
         <span>{{ row.label }}</span>
-        <span>{{ row.done }} / {{ row.total }} · {{ row.percent }}%</span>
+        <span class="tabular-nums">{% if row.total %}{{ row.done }} / {{ row.total }} · {{ row.percent }}%{% else %}none{% endif %}</span>
     </div>
     <progress class="progress {{ color|default:'progress-primary' }} w-full" value="{{ row.done }}" max="{{ row.bar_max }}" aria-label="{{ row.label }}: {{ row.done }} of {{ row.total }}"></progress>
 </div>

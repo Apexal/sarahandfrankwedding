@@ -1,0 +1,59 @@
+{% comment %}Address collection: progress by side, then the households still missing one. Part of dashboard.html.{% endcomment %}
+<section class="mt-12 space-y-4" aria-labelledby="addresses-heading">
+    <h2 id="addresses-heading" class="font-display text-2xl">Address collection</h2>
+    <div class="card bg-base-200">
+        <div class="card-body gap-4 p-5">
+            {% include "guests/manage/_progress.html" with row=address.progress.0 %}
+            <div class="grid gap-4 sm:grid-cols-3">
+                {% for row in address.progress|slice:"1:" %}
+                {% include "guests/manage/_progress.html" with row=row %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <h3 class="font-sans font-semibold">Still need an address ({{ address.missing|length }})</h3>
+    {% if address.missing %}
+    <div class="overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Household</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Emailed</th>
+                    <th>Save-the-date link</th>
+                    <th><span class="sr-only">Edit</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for household in address.missing %}
+                <tr>
+                    <td>
+                        {{ household.name }}
+                        <span class="badge badge-ghost badge-sm ml-1">{{ household.get_side_display }}</span>
+                    </td>
+                    <td class="whitespace-nowrap">{{ household.phone|default:"—" }}</td>
+                    <td>{{ household.email|default:"—" }}</td>
+                    <td>
+                        {% if household.emailed %}
+                            <span class="badge badge-success badge-sm">Sent</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm">Not yet</span>
+                        {% endif %}
+                    </td>
+                    <td class="whitespace-nowrap">
+                        <code class="font-mono text-xs tracking-wider" title="{{ household.save_the_date_url }}">{{ household.invite_code }}</code>
+                        <button type="button" class="btn btn-ghost btn-xs" data-copy="{{ household.save_the_date_url }}" aria-label="Copy the save-the-date link for {{ household.name }}">Copy link</button>
+                    </td>
+                    <td>
+                        <a href="{% url 'manage:guest_list' %}?q={{ household.invite_code|urlencode }}" class="link link-primary">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-sm opacity-70">Every household has a confirmed address.</p>
+    {% endif %}
+</section>

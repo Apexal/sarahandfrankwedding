@@ -11,14 +11,9 @@ dialog: static/js/guest-list.js (CSP allows only 'self' scripts, so nothing is i
 {% endblock extra_head %}
 {% block content %}
 <div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6 [&_::placeholder]:text-base-content/45">
-    <div class="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 class="font-display text-3xl sm:text-4xl">Guest list</h1>
-        <nav aria-label="Staff pages" class="flex flex-wrap gap-2">
-            <a href="{% url 'manage:dashboard' %}" class="btn btn-sm btn-outline">Dashboard</a>
-            <a href="{% url 'manage:seating' %}" class="btn btn-sm btn-outline">Seating</a>
-            <a href="{% url 'admin:guests_household_changelist' %}" class="btn btn-sm btn-outline">Admin</a>
-        </nav>
-    </div>
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <h1 class="mt-6 font-display text-3xl sm:text-4xl">Guest list</h1>
 
     {% include "guests/manage/guest_list/_totals.html" %}
 

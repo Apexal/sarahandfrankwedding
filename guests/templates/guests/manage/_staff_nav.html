@@ -1,0 +1,12 @@
+{% comment %}
+The nav every /manage/ page shares: same links, same order, current page marked. Page-specific tools
+(seating's print view, CSV, add table) go in the page header, not here.
+{% endcomment %}
+{% with current=request.resolver_match.url_name %}
+<nav aria-label="Staff pages" class="flex flex-wrap items-center gap-1 border-b border-base-300 pb-3">
+    <a href="{% url 'manage:dashboard' %}" class="btn btn-sm {% if current == 'dashboard' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+    <a href="{% url 'manage:guest_list' %}" class="btn btn-sm {% if current == 'guest_list' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'guest_list' %}aria-current="page"{% endif %}>Guest list</a>
+    <a href="{% url 'manage:seating' %}" class="btn btn-sm {% if current == 'seating' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'seating' %}aria-current="page"{% endif %}>Seating</a>
+    <a href="{% url 'admin:index' %}" class="btn btn-sm btn-ghost ml-auto">Admin</a>
+</nav>
+{% endwith %}
