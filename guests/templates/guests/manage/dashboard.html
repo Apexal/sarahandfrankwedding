@@ -112,7 +112,7 @@ RSVPs lead once `rsvp_open` is on, address collection leads before that. Copy bu
         <ul class="space-y-1 text-sm">
             {% for household in bounced %}
             <li>
-                <a href="{% url 'admin:guests_household_change' household.pk %}" class="link">{{ household.name }}</a>
+                <a href="{% url 'manage:guest_list' %}?q={{ household.invite_code|urlencode }}" class="link">{{ household.name }}</a>
                 <span class="opacity-70">{{ household.email }} · bounced {{ household.email_bounced_at|date:"M j" }}</span>
             </li>
             {% endfor %}
@@ -136,7 +136,7 @@ RSVPs lead once `rsvp_open` is on, address collection leads before that. Copy bu
                 <tbody>
                     {% for item in campaigns %}
                     <tr>
-                        <td><a href="{% url 'admin:guests_campaign_change' item.campaign.pk %}" class="link">{{ item.campaign.name }}</a></td>
+                        <td><a href="{% url 'manage:campaign_detail' item.campaign.pk %}" class="link">{{ item.campaign.name }}</a></td>
                         <td>{{ item.campaign.get_audience_display }}</td>
                         <td><span class="badge badge-ghost badge-sm">{{ item.campaign.get_status_display }}</span></td>
                         <td>

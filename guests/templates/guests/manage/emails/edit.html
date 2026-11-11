@@ -1,0 +1,63 @@
+{% extends "pages/base_public.html" %}
+{% load static %}
+{% comment %}
+Edit one email template with a live preview. View: guests/views/campaigns.py; rendering:
+guests/email_preview.py. The preview re-renders as you type (HTMX), with a real household's details for
+campaign emails and sample details for the automatic ones. Nothing changes for guests until Save.
+{% endcomment %}
+{% block head_title %}{{ definition.name }} · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <p class="mt-6 text-sm"><a href="{% url 'manage:email_templates' %}" class="link">← Emails</a></p>
+    <h1 class="mt-1 font-display text-3xl sm:text-4xl">{{ definition.name }}</h1>
+    <p class="mt-1 text-sm opacity-75">{{ help }}</p>
+
+    <div class="mt-6 grid gap-8 lg:grid-cols-2">
+        <form id="template-form" method="post" class="space-y-4"
+              hx-post="{% url 'manage:email_template_preview' key %}" hx-trigger="input delay:500ms" hx-target="#email-preview" hx-swap="outerHTML" hx-include="#preview-household">
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="text-sm text-error">{{ error }}</p>{% endfor %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.subject_template %}
+            {% include "guests/manage/guest_list/_field.html" with field=form.html_body_template %}
+            <details class="text-sm">
+                <summary class="cursor-pointer">Placeholders you can use</summary>
+                <p class="mt-2 opacity-75">Write them as <code>{% templatetag openvariable %} name {% templatetag closevariable %}</code>; each is filled in per household.</p>
+                <ul class="mt-2 flex flex-wrap gap-1">
+                    {% for variable in variables %}<li><code class="badge badge-sm badge-ghost font-mono">{% templatetag openvariable %} {{ variable }} {% templatetag closevariable %}</code></li>{% endfor %}
+                </ul>
+            </details>
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{% url 'manage:email_template' key %}" class="btn btn-ghost">Discard changes</a>
+            </div>
+        </form>
+
+        <section aria-labelledby="preview-heading" class="space-y-3">
+            <h2 id="preview-heading" class="font-display text-2xl">Preview</h2>
+            {% if households %}
+            <form method="get" class="flex flex-wrap items-end gap-2">
+                <label class="w-full sm:w-72">
+                    <span class="mb-1 block text-xs">As sent to</span>
+                    <select id="preview-household" name="household" class="select select-sm w-full">
+                        {% for household in households %}<option value="{{ household.pk }}" {% if household.pk == preview_household.pk %}selected{% endif %}>{{ household.name }}</option>{% endfor %}
+                    </select>
+                </label>
+                <button type="submit" class="btn btn-sm btn-ghost">Show</button>
+            </form>
+            {% else %}
+            <p class="text-xs opacity-70">Shown with sample details.</p>
+            {% endif %}
+            {% include "guests/manage/emails/_preview.html" %}
+            {% if saved %}
+            <form method="post" action="{% url 'manage:email_template_test' key %}">
+                {% csrf_token %}
+                {% if preview_household %}<input type="hidden" name="household" value="{{ preview_household.pk }}" />{% endif %}
+                <button type="submit" class="btn btn-sm btn-outline">Send the saved version to me ({{ request.user.email }})</button>
+            </form>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock content %}

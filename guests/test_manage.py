@@ -185,7 +185,7 @@ class TestDashboard:
         assert responses["call"] == 1  # The Bounceds cannot be emailed
 
         assert response.context["new_submissions"] == 1
-        assert reverse("admin:guests_contactsubmission_changelist") in response.context["submissions_url"]
+        assert response.context["submissions_url"] == reverse("manage:submissions")
         assert [household.pk for household in response.context["bounced"]] == [data.bounced.pk]
         assert len(response.context["recent_rsvps"]) == 4
 
@@ -232,7 +232,7 @@ class TestDashboard:
         assert item["campaign"] == data.campaign
         assert item["counts"] == [("Queued", 1), ("Handed to the email queue", 1)]
         html = response.content.decode()
-        assert reverse("admin:guests_campaign_change", args=[data.campaign.pk]) in html
+        assert reverse("manage:campaign_detail", args=[data.campaign.pk]) in html
 
     def test_links_to_exports_and_qr(self, admin_client, data):
         wedding = WeddingSettings.load()

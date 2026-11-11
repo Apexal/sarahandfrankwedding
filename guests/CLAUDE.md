@@ -28,6 +28,18 @@ and the guest list editor.
   `rsvps_lost_by_uninvite()` first and show a confirm. Empty households are kept. Deletes with something to
   lose (`household_stakes()` / `guest_stakes()`) need the name typed. Confirmations render into the page's
   `<dialog>` via `HX-Retarget`, never a browser dialog; JS is `static/js/guest-list.js` (CSP: no inline).
+- **Save-the-date outreach** (`/manage/save-the-date/`, `guests/views/outreach.py`): texting is by hand
+  from our phones (an `sms:` link with `save_the_date_message()` filled in), recorded on
+  `Household.save_the_date_texted_at`; "emailed" means a `sent` `CampaignRecipient` on a `save_the_date` or
+  `address_nudge` campaign. The page flips only `save_the_date_open` and `codes_frozen`. Generic-page
+  submissions are reviewed at `/manage/save-the-date/submissions/` through `guests/submissions.py`
+  (`create_household`, `merge`, `suggest_households`), which the admin actions share.
+- **Campaigns and email templates in `/manage/`** (`guests/views/campaigns.py`): drafts are edited there and
+  previewed for any household in the audience; once sending, only the daily cap changes. "Send next batch
+  now" and "Retry failed" are `send_next_batch_now()` / `retry_failed()` in `guests/campaigns.py`.
+  Previews and "[Test]" sends go through `guests/email_preview.py`, which builds the real context for a
+  household (`CAMPAIGN_CONTEXT_BUILDERS`, which take the campaign too: an announcement's body is
+  `Campaign.message`). Rendered email HTML is already safe, so put it in `srcdoc` with `|force_escape`.
 - **Seating is reception-only.** `Guest.table` is one assignment per guest. The editor at `/manage/seating/`
   puts every write through `guests/seating.py` and answers with the whole board (`seating/_board.html`)
   re-rendered, so counts and warnings never drift. Capacity is warned about, never enforced. The pool is

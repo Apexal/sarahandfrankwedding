@@ -9,3 +9,6 @@ Templated transactional email pipeline.
 - **Domain apps register their own templates.** `register_template_definition(TemplateDefinition(...))` adds a key + context dataclass to the registry; `guests/email_contexts.py` does this at import time from `GuestsConfig.ready()`, and seeds the DB rows with a data migration so a fresh clone can send. `messaging` never imports a domain app.
 - **`EmailTemplateService.queue_email(...)` returns the `OutboundEmail`** it created (same arguments as `send_email`, which returns the task result). Use it when a caller needs to link the row, as campaigns do.
 - **`EMAIL_RECIPIENT_ALLOWLIST`** (settings, from env) makes `_send_outbound_email` redirect any off-list recipient to the first allowed address with `[to: original]` in the subject; the row keeps the real recipient. Staging only.
+- **Subjects render with autoescape off and the text body is `html_to_text()`** (`messaging/services.py`), so
+  "Sarah & Frank" never reaches an inbox as "Sarah &amp; Frank". Use `render_subject()` / `html_to_text()`
+  anywhere a subject or plain-text body is rendered, including previews.

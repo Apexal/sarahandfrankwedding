@@ -1,4 +1,5 @@
 from dataclasses import asdict, is_dataclass
+from html import unescape
 
 from django.conf import settings
 from django.tasks import TaskResult
@@ -10,6 +11,20 @@ from messaging.tasks import send_outbound_email_task
 from messaging.template_definitions import (
     get_template_definition,
 )
+
+
+def html_to_text(html_body: str) -> str:
+    """The plain-text alternative: tags stripped and entities decoded, so "Bob &amp; Carol" reads "Bob & Carol"."""
+    return unescape(strip_tags(html_body)) if html_body else ""
+
+
+def render_subject(subject_source: str, context_data: dict) -> str:
+    """Render a subject line. Subjects are plain text, so nothing is HTML-escaped; newlines are collapsed
+    because a header cannot hold them."""
+    if not subject_source:
+        return ""
+    rendered = Template(subject_source).render(Context(context_data, autoescape=False))
+    return " ".join(rendered.split())
 
 
 class EmailTemplateServiceError(Exception):
@@ -97,12 +112,12 @@ class EmailTemplateService:
             context_data=context_data,
         )
 
-        rendered_subject_template = self._render(
-            template_html.subject_template,
-            normalized_context,
-        ).strip()
+        try:
+            rendered_subject_template = render_subject(template_html.subject_template, normalized_context)
+        except TemplateSyntaxError as exc:
+            raise EmailTemplateRenderError(str(exc)) from exc
         html_body = self._render(template_html.html_body_template, normalized_context)
-        text_body = strip_tags(html_body) if html_body else ""
+        text_body = html_to_text(html_body)
         resolved_subject = subject or rendered_subject_template or self._default_subject_for_template_key(template_key)
         resolved_from_email = from_email or settings.DEFAULT_FROM_EMAIL
 

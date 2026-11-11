@@ -1,0 +1,74 @@
+{% extends "pages/base_public.html" %}
+{% load static core_filters %}
+{% comment %}
+Create or edit a draft campaign. View: guests/views/campaigns.py. Fields that only matter for one audience or
+one email show and hide with static/js/campaigns.js; the household picker filters there too.
+{% endcomment %}
+{% block head_title %}{% if campaign %}Edit {{ campaign.name }}{% else %}New campaign{% endif %} · {{ wedding.couple_names }}{% endblock head_title %}
+{% block extra_head %}
+<script src="{% static 'js/campaigns.js' %}" defer></script>
+{% ckeditor_media %}
+{% endblock extra_head %}
+{% block content %}
+<div class="mx-auto w-full max-w-3xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <p class="mt-6 text-sm"><a href="{% if campaign %}{% url 'manage:campaign_detail' campaign.pk %}{% else %}{% url 'manage:campaigns' %}{% endif %}" class="link">← Back</a></p>
+    <h1 class="mt-1 font-display text-3xl sm:text-4xl">{% if campaign %}Edit “{{ campaign.name }}”{% else %}New campaign{% endif %}</h1>
+    <p class="mt-2 text-sm opacity-75">Saving doesn't send anything. You'll see who it goes to and a preview next.</p>
+
+    <form method="post" class="mt-6 space-y-5">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<p class="text-sm text-error">{{ error }}</p>{% endfor %}
+        {% include "guests/manage/guest_list/_field.html" with field=form.name %}
+
+        <div>
+            {% include "guests/manage/guest_list/_field.html" with field=form.template_key %}
+            <ul class="mt-2 space-y-1 text-xs opacity-75">
+                {% for label, help in template_help %}<li><strong>{{ label }}</strong>: {{ help }}</li>{% endfor %}
+            </ul>
+        </div>
+
+        <div data-show-for-template="announcement">
+            <label class="mb-1 block text-sm" for="{{ form.message.id_for_label }}">{{ form.message.label|capfirst }}</label>
+            {{ form.message }}
+            <p class="mt-1 text-xs opacity-75">{{ form.message.help_text }}</p>
+            {% for error in form.message.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        {% include "guests/manage/guest_list/_field.html" with field=form.audience %}
+
+        <div data-show-for-audience="attending">
+            {% include "guests/manage/guest_list/_field.html" with field=form.event %}
+        </div>
+
+        <fieldset data-show-for-audience="selected">
+            <legend class="mb-1 text-sm">Households</legend>
+            <div class="flex flex-wrap items-center gap-2">
+                <label class="input input-sm w-full sm:w-64">
+                    <span class="sr-only">Filter households</span>
+                    <input type="search" placeholder="Filter" data-filter-list="campaign-households" autocomplete="off" />
+                </label>
+                <button type="button" class="btn btn-ghost btn-xs" data-check-visible="campaign-households">Tick shown</button>
+                <button type="button" class="btn btn-ghost btn-xs" data-check-visible="campaign-households" data-value="0">Untick shown</button>
+            </div>
+            <ul id="campaign-households" class="mt-2 max-h-80 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 text-sm">
+                {% for choice in form.households %}
+                <li data-filter-item><label class="flex cursor-pointer items-center gap-2 py-0.5">{{ choice.tag }} {{ choice.choice_label }}</label></li>
+                {% endfor %}
+            </ul>
+            {% for error in form.households.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+        </fieldset>
+
+        <div>
+            {% include "guests/manage/guest_list/_field.html" with field=form.daily_cap %}
+            <p class="mt-1 text-xs opacity-75">How many go out each day. The first batch leaves when you press Send; the rest each morning at 9, or sooner with “Send next batch now”. Keep it modest while the sending domain is young.</p>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">{% if campaign %}Save{% else %}Save draft{% endif %}</button>
+            <a href="{% if campaign %}{% url 'manage:campaign_detail' campaign.pk %}{% else %}{% url 'manage:campaigns' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock content %}

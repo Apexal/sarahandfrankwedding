@@ -1,0 +1,116 @@
+{% extends "pages/base_public.html" %}
+{% load static %}
+{% comment %}
+Sending the save-the-date by hand. View: guests/views/outreach.py. Texts go from our phones: "Text" opens
+Messages with the message filled in, then "Mark texted" records it. Copy buttons: static/js/dashboard.js.
+{% endcomment %}
+{% block head_title %}Save the date · {{ wedding.couple_names }}{% endblock head_title %}
+{% block extra_head %}
+<script src="{% static 'js/dashboard.js' %}" defer></script>
+{% endblock extra_head %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-3">
+        <h1 class="font-display text-3xl sm:text-4xl">Save the date</h1>
+        <a href="{% url 'manage:submissions' %}" class="btn btn-sm {% if new_submissions %}btn-primary{% else %}btn-outline{% endif %}">
+            Generic-page submissions{% if new_submissions %} <span class="badge badge-sm">{{ new_submissions }} new</span>{% endif %}
+        </a>
+    </div>
+
+    <div class="stats stats-vertical mt-6 w-full bg-base-200 sm:stats-horizontal">
+        <div class="stat py-3">
+            <div class="stat-title">Addresses confirmed</div>
+            <div class="stat-value text-2xl tabular-nums">{{ stats.confirmed }} <span class="text-base font-normal opacity-60">/ {{ stats.total }}</span></div>
+        </div>
+        <div class="stat py-3">
+            <div class="stat-title">Texted</div>
+            <div class="stat-value text-2xl tabular-nums">{{ stats.texted }}</div>
+            <div class="stat-desc">{{ stats.to_text }} with a phone still to text</div>
+        </div>
+        <div class="stat py-3">
+            <div class="stat-title">Emailed</div>
+            <div class="stat-value text-2xl tabular-nums">{{ stats.emailed }}</div>
+            <div class="stat-desc">{{ stats.can_email }} can be emailed</div>
+        </div>
+        <div class="stat py-3">
+            <div class="stat-title">Not reached yet</div>
+            <div class="stat-value text-2xl tabular-nums {% if stats.unreached %}text-warning{% endif %}">{{ stats.unreached }}</div>
+            <div class="stat-desc">{{ stats.no_way }} with no phone or usable email</div>
+        </div>
+    </div>
+
+    <div class="mt-8 grid gap-6 lg:grid-cols-2">
+        <section class="card border border-base-300 bg-base-200" aria-labelledby="email-heading">
+            <div class="card-body gap-3 p-5">
+                <h2 id="email-heading" class="font-display text-2xl">Email it</h2>
+                <p class="text-sm opacity-80">An email campaign sends the save-the-date to every household with an email, a batch a day. Check the email first, send yourself a test, then send.</p>
+                {% if campaigns %}
+                <ul class="space-y-1 text-sm">
+                    {% for campaign in campaigns %}
+                    <li class="flex flex-wrap items-center gap-2">
+                        <a class="link" href="{% url 'manage:campaign_detail' campaign.pk %}">{{ campaign.name }}</a>
+                        <span class="badge badge-sm {% if campaign.status == 'sent' %}badge-success{% elif campaign.status == 'sending' %}badge-info{% else %}badge-ghost{% endif %}">{{ campaign.get_status_display }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ email_all_url }}" class="btn btn-primary btn-sm">Email the save-the-date…</a>
+                    <a href="{{ nudge_url }}" class="btn btn-outline btn-sm">Nudge missing addresses…</a>
+                    <a href="{% url 'manage:email_template' 'save_the_date' %}" class="btn btn-ghost btn-sm">Edit the email</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="card border border-base-300 bg-base-200" aria-labelledby="switches-heading">
+            <div class="card-body gap-3 p-5">
+                <h2 id="switches-heading" class="font-display text-2xl">Switches</h2>
+                <ul class="space-y-3">
+                    {% for switch in switches %}
+                    <li class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-semibold">{{ switch.label }} <span class="badge badge-sm {% if switch.on %}badge-success{% else %}badge-ghost{% endif %}">{{ switch.on|yesno:"On,Off" }}</span></p>
+                            <p class="text-sm opacity-75">{{ switch.help }}</p>
+                        </div>
+                        <form method="post" action="{% url 'manage:save_the_date_switch' %}" class="shrink-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="name" value="{{ switch.name }}" />
+                            <input type="hidden" name="on" value="{{ switch.on|yesno:'0,1' }}" />
+                            <button type="submit" class="btn btn-sm whitespace-nowrap {% if switch.on %}btn-outline{% else %}btn-primary{% endif %}">Turn {{ switch.on|yesno:"off,on" }}</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="flex flex-wrap items-center gap-2 border-t border-base-300 pt-3 text-sm">
+                    <span>Generic link:</span>
+                    <code class="text-xs">{{ generic_url }}</code>
+                    <button type="button" class="btn btn-ghost btn-xs" data-copy="{{ generic_url }}">Copy</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="mt-10" aria-labelledby="households-heading">
+        <h2 id="households-heading" class="font-display text-2xl">Households</h2>
+        <p class="mt-1 text-sm opacity-75">On your phone, “Text” opens Messages with their link and the message filled in. Press “Mark texted” once it's sent.</p>
+        <form class="mt-4 flex flex-wrap items-center gap-3" role="search" aria-label="Filter households"
+              hx-get="{% url 'manage:save_the_date' %}" hx-target="#std-rows" hx-swap="innerHTML"
+              hx-trigger="input delay:300ms, change, submit" hx-push-url="true">
+            <label class="input input-sm w-full sm:w-72">
+                <span class="sr-only">Search</span>
+                <input type="search" name="q" value="{{ q }}" placeholder="Search names, email, code" autocomplete="off" />
+            </label>
+            <div class="join" role="radiogroup" aria-label="Show">
+                {% for value, label in show_choices %}
+                <input class="join-item btn btn-sm" type="radio" name="show" value="{{ value }}" aria-label="{{ label }}" {% if show == value %}checked{% endif %} />
+                {% endfor %}
+            </div>
+        </form>
+        <div id="std-rows" class="mt-4">
+            {% include "guests/manage/save_the_date/_rows.html" %}
+        </div>
+    </section>
+</div>
+{% endblock content %}

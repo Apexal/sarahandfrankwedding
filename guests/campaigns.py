@@ -12,6 +12,7 @@ from collections.abc import Callable
 import structlog
 from django.db import transaction
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from guests.email_contexts import (
     ADDRESS_NUDGE,
@@ -24,7 +25,9 @@ from guests.email_contexts import (
     build_save_the_date_context,
 )
 from guests.models import Campaign, CampaignRecipient, Household
+from messaging.models import OutboundEmail
 from messaging.services import EmailTemplateService
+from messaging.tasks import send_outbound_email_task
 from pages.models import WeddingSettings
 
 logger = structlog.get_logger(__name__)
@@ -35,14 +38,22 @@ class CampaignError(Exception):
 
 
 #: Templates a campaign can send, and how to build each one's context for a household.
-#: The announcement body is authored in its `EmailTemplateVersion` row, so `body_html` is
-#: empty here; it exists for sends from code. Confirmation and internal-notice templates
-#: are sent by the RSVP flow, not by campaigns.
-CAMPAIGN_CONTEXT_BUILDERS: dict[str, Callable[[Household, WeddingSettings], object]] = {
-    SAVE_THE_DATE: build_save_the_date_context,
-    ADDRESS_NUDGE: build_address_nudge_context,
-    RSVP_NUDGE: build_rsvp_nudge_context,
-    ANNOUNCEMENT: lambda household, wedding: build_announcement_context(household, wedding, body_html=""),
+#: Confirmation and internal-notice templates are sent by the RSVP flow, not by campaigns.
+CAMPAIGN_CONTEXT_BUILDERS: dict[str, Callable[[Household, WeddingSettings, Campaign | None], object]] = {
+    SAVE_THE_DATE: lambda household, wedding, campaign: build_save_the_date_context(household, wedding),
+    ADDRESS_NUDGE: lambda household, wedding, campaign: build_address_nudge_context(household, wedding),
+    RSVP_NUDGE: lambda household, wedding, campaign: build_rsvp_nudge_context(household, wedding),
+    ANNOUNCEMENT: lambda household, wedding, campaign: build_announcement_context(
+        household, wedding, body_html=campaign.message if campaign else ""
+    ),
+}
+
+#: What each campaign template is for, shown beside the template picker on /manage/campaigns/.
+CAMPAIGN_TEMPLATE_HELP = {
+    SAVE_THE_DATE: "The save-the-date itself, with their personal link to confirm their address.",
+    ADDRESS_NUDGE: "A reminder to confirm their address. Pair it with “Address not yet confirmed”.",
+    RSVP_NUDGE: "A reminder to RSVP, with their invite code. Pair it with “Has not RSVPed”.",
+    ANNOUNCEMENT: "A message you write below (hotel block, schedule news). Fill in the message.",
 }
 
 
@@ -51,7 +62,7 @@ def build_campaign_context(campaign: Campaign, household: Household, wedding: We
         builder = CAMPAIGN_CONTEXT_BUILDERS[campaign.template_key]
     except KeyError:
         raise CampaignError(f"'{campaign.template_key}' is not a template a campaign can send.") from None
-    return builder(household, wedding)
+    return builder(household, wedding, campaign)
 
 
 def start_campaign(campaign: Campaign) -> None:
@@ -62,6 +73,10 @@ def start_campaign(campaign: Campaign) -> None:
         raise CampaignError("Pick a template before sending.")
     if campaign.template_key not in CAMPAIGN_CONTEXT_BUILDERS:
         raise CampaignError(f"'{campaign.template_key}' is not a template a campaign can send.")
+    if campaign.template_key == ANNOUNCEMENT and not strip_tags(campaign.message).strip():
+        raise CampaignError("Write the announcement's message before sending.")
+    if campaign.audience == Campaign.Audience.ATTENDING and not campaign.event_id:
+        raise CampaignError("Pick the event for an “attending an event” audience.")
 
     # Imported here: guests.tasks imports this module for the batch function.
     from guests.tasks import send_campaign
@@ -76,6 +91,42 @@ def start_campaign(campaign: Campaign) -> None:
         audience=campaign.audience,
         daily_cap=campaign.daily_cap,
     )
+
+
+def send_next_batch_now(campaign: Campaign) -> None:
+    """Enqueue the next batch of a sending campaign today instead of waiting for tomorrow morning."""
+    if campaign.status != Campaign.Status.SENDING:
+        raise CampaignError(f"Campaign is {campaign.get_status_display().lower()}, not sending.")
+    from guests.tasks import send_campaign
+
+    send_campaign.enqueue(campaign_id=campaign.pk)
+    logger.info("campaign_batch_requested", campaign_id=campaign.pk, daily_cap=campaign.daily_cap)
+
+
+def retry_failed(campaign: Campaign) -> dict[str, int]:
+    """Try every failure again: recipients that never rendered go back in the queue (reopening a
+    finished campaign), and emails the provider refused are handed to the email worker again."""
+    failed_recipients = campaign.recipients.filter(status=CampaignRecipient.Status.FAILED)
+    requeued = failed_recipients.update(status=CampaignRecipient.Status.QUEUED, error="")
+    failed_emails = list(
+        OutboundEmail.objects.filter(
+            pk__in=campaign.recipients.filter(status=CampaignRecipient.Status.SENT).values("outbound_email"),
+            status=OutboundEmail.DeliveryStatus.FAILED,
+        )
+    )
+    for outbound_email in failed_emails:
+        outbound_email.status = OutboundEmail.DeliveryStatus.QUEUED
+        outbound_email.error_message = ""
+        outbound_email.save(update_fields=("status", "error_message", "updated_at"))
+        send_outbound_email_task.enqueue(outbound_email_id=outbound_email.pk)
+    if requeued:
+        if campaign.status == Campaign.Status.SENT:
+            campaign.status = Campaign.Status.SENDING
+            campaign.sent_at = None
+            campaign.save(update_fields=("status", "sent_at", "updated_at"))
+        send_next_batch_now(campaign)
+    logger.info("campaign_failures_retried", campaign_id=campaign.pk, recipients=requeued, emails=len(failed_emails))
+    return {"recipients": requeued, "emails": len(failed_emails)}
 
 
 def send_campaign_batch(campaign: Campaign) -> int:

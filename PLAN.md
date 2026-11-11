@@ -14,6 +14,15 @@ second is hard.
 
 ## 0. Change log
 
+**v11 (2026-11-10, evening).** The save-the-date send and campaigns move out of the admin into `/manage/`:
+`/manage/save-the-date/` (texting each household from a phone with "mark texted", recorded on the new
+`Household.save_the_date_texted_at`; who has not been reached; the `save_the_date_open` and `codes_frozen`
+switches), `/manage/save-the-date/submissions/` (merge, create, ignore), `/manage/campaigns/` (draft, audience,
+preview per household, test send to yourself, send, progress per recipient, send next batch now, retry
+failed, daily cap) and `/manage/emails/` (template editor with live preview). `Campaign.message` is the body
+of an announcement, which until now sent empty. Subjects and plain-text bodies no longer HTML-escape `&`.
+The admin keeps working for all of it.
+
 **v10 (2026-11-10, later).** A visual seating editor replaces the read-only `/manage/seating/` page
 (section 8, "Seating"): each table drawn as a ring of seats, an unseated pool beside them, drag-and-drop
 (SortableJS) for guests, whole households, and table order, a "seat at…" dialog as the keyboard path, and

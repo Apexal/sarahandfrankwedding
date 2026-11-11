@@ -1,0 +1,43 @@
+{% extends "pages/base_public.html" %}
+{% comment %}Email campaigns. View: guests/views/campaigns.py; sending: guests/campaigns.py.{% endcomment %}
+{% block head_title %}Campaigns · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-3">
+        <h1 class="font-display text-3xl sm:text-4xl">Campaigns</h1>
+        <a href="{% url 'manage:campaign_new' %}" class="btn btn-primary btn-sm">New campaign</a>
+    </div>
+    <p class="mt-2 text-sm opacity-75">A campaign emails one of the wedding emails to a group of households, a batch a day. Households with no email, an opt-out or a bounce are always left out.</p>
+
+    {% if rows %}
+    <div class="mt-6 overflow-x-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr><th>Campaign</th><th>Email</th><th>Audience</th><th>Status</th><th>Recipients</th><th>Created</th></tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% with campaign=row.campaign %}
+                <tr>
+                    <td><a class="link font-semibold" href="{% url 'manage:campaign_detail' campaign.pk %}">{{ campaign.name }}</a></td>
+                    <td>{{ row.template }}</td>
+                    <td>{{ campaign.get_audience_display }}{% if campaign.event %} ({{ campaign.event.name }}){% endif %}</td>
+                    <td><span class="badge badge-sm {% if campaign.status == 'sent' %}badge-success{% elif campaign.status == 'sending' %}badge-info{% else %}badge-ghost{% endif %}">{{ campaign.get_status_display }}</span></td>
+                    <td class="text-sm">
+                        {% if row.audience_size is not None %}{{ row.audience_size }} in audience{% endif %}
+                        {% for label, count in row.counts %}{{ count }} {{ label|lower }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                    </td>
+                    <td class="whitespace-nowrap text-sm">{{ campaign.created_at|date:"M j" }}</td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="mt-6 text-sm opacity-70">No campaigns yet.</p>
+    {% endif %}
+</div>
+{% endblock content %}

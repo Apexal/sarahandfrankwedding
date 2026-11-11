@@ -185,7 +185,7 @@ def _campaigns() -> list[dict]:
 def dashboard(request: AppRequest) -> HttpResponse:
     wedding = WeddingSettings.load()
     new_submissions = ContactSubmission.objects.filter(status=ContactSubmission.Status.NEW).count()
-    submissions_url = f"{reverse('admin:guests_contactsubmission_changelist')}?{urlencode({'status__exact': 'new'})}"
+    submissions_url = reverse("manage:submissions")
     events = _event_section()
     context = {
         "address": _address_section(),

@@ -1,0 +1,27 @@
+{% extends "pages/base_public.html" %}
+{% comment %}The wedding's email templates. View: guests/views/campaigns.py.{% endcomment %}
+{% block head_title %}Emails · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="mx-auto w-full max-w-5xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+    <h1 class="mt-6 font-display text-3xl sm:text-4xl">Emails</h1>
+    <p class="mt-2 text-sm opacity-75">The words of every email the site sends. Campaigns send the first four; the RSVP flow sends the last two by itself.</p>
+    <ul class="mt-6 space-y-3">
+        {% for row in rows %}
+        <li class="card border border-base-300 bg-base-200">
+            <div class="card-body flex-row flex-wrap items-center justify-between gap-3 p-4">
+                <div class="min-w-0">
+                    <h2 class="font-display text-xl">{{ row.name }}
+                        {% if row.campaign %}<span class="badge badge-sm badge-ghost">Campaign</span>{% else %}<span class="badge badge-sm badge-ghost">Automatic</span>{% endif %}
+                        {% if not row.stored %}<span class="badge badge-sm badge-warning">Not written yet</span>{% endif %}
+                    </h2>
+                    <p class="text-sm opacity-75">{{ row.help }}</p>
+                    {% if row.stored %}<p class="text-xs opacity-60">Last changed {{ row.stored.updated_at|date:"M j, Y" }} · subject: {{ row.stored.subject_template }}</p>{% endif %}
+                </div>
+                <a href="{% url 'manage:email_template' row.key %}" class="btn btn-sm btn-outline">Edit</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock content %}

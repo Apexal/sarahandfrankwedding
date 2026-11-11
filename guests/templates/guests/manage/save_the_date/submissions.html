@@ -1,0 +1,100 @@
+{% extends "pages/base_public.html" %}
+{% comment %}
+Addresses typed into the generic /save-the-date/ page. View: guests/views/outreach.py; rules:
+guests/submissions.py. Names are free text, so every merge is picked by hand; suggestions only rank.
+{% endcomment %}
+{% block head_title %}Submissions · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="mx-auto w-full max-w-5xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <p class="mt-6 text-sm"><a href="{% url 'manage:save_the_date' %}" class="link">← Save the date</a></p>
+    <h1 class="mt-1 font-display text-3xl sm:text-4xl">Generic-page submissions</h1>
+    <p class="mt-2 text-sm opacity-75">Each one is someone who used the forwardable link. Merge it into their household (copies the address, email and phone, and confirms the address), make a new household from it, or ignore it.</p>
+
+    <div role="tablist" class="tabs tabs-border mt-6">
+        {% for value, label, count in tabs %}
+        <a role="tab" href="?status={{ value }}" class="tab {% if status == value %}tab-active{% endif %}" {% if status == value %}aria-selected="true"{% endif %}>{{ label }} ({{ count }})</a>
+        {% endfor %}
+    </div>
+
+    {% if items %}
+    <ul class="mt-6 space-y-4">
+        {% for item in items %}
+        {% with submission=item.submission %}
+        <li class="card border border-base-300 bg-base-200">
+            <div class="card-body gap-3 p-5">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 class="font-display text-xl">{{ submission.names }}</h2>
+                    <span class="text-xs opacity-70">{{ submission.created_at|date:"M j, Y g:i a" }}</span>
+                </div>
+                <dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+                    <dt class="opacity-70">Email</dt><dd>{{ submission.email|default:"—" }}</dd>
+                    <dt class="opacity-70">Phone</dt><dd>{{ submission.phone|default:"—" }}</dd>
+                    <dt class="opacity-70">Address</dt>
+                    <dd>{% if submission.has_address %}{{ submission.address_line1 }}{% if submission.address_line2 %}, {{ submission.address_line2 }}{% endif %}, {{ submission.city }}{% if submission.state %}, {{ submission.state }}{% endif %} {{ submission.postal_code }}{% else %}—{% endif %}</dd>
+                    {% if submission.notes %}<dt class="opacity-70">Notes</dt><dd class="whitespace-pre-line">{{ submission.notes }}</dd>{% endif %}
+                </dl>
+
+                {% if submission.status == "new" %}
+                <div class="space-y-3 border-t border-base-300 pt-3">
+                    {% if item.suggestions %}
+                    <div>
+                        <p class="text-sm font-semibold">Likely households</p>
+                        <ul class="mt-1 flex flex-wrap gap-2">
+                            {% for household in item.suggestions %}
+                            <li>
+                                <form method="post" action="{% url 'manage:submission_merge' submission.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="household" value="{{ household.pk }}" />
+                                    <button type="submit" class="btn btn-sm btn-outline">Merge into {{ household.name }}{% if household.address_confirmed %} <span class="badge badge-xs badge-success">has address</span>{% endif %}</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    <form method="post" action="{% url 'manage:submission_merge' submission.pk %}" class="flex flex-wrap items-end gap-2">
+                        {% csrf_token %}
+                        <label class="w-full sm:w-80">
+                            <span class="mb-1 block text-sm">Another household</span>
+                            <select name="household" class="select select-sm w-full" required>
+                                <option value="">Pick a household…</option>
+                                {% for household in all_households %}<option value="{{ household.pk }}">{{ household.name }}</option>{% endfor %}
+                            </select>
+                        </label>
+                        <button type="submit" class="btn btn-sm btn-primary">Merge</button>
+                    </form>
+                    <div class="flex flex-wrap gap-2">
+                        <form method="post" action="{% url 'manage:submission_create' submission.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline">New household “{{ submission.names }}”</button>
+                        </form>
+                        <form method="post" action="{% url 'manage:submission_status' submission.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="ignored" />
+                            <button type="submit" class="btn btn-sm btn-ghost">Ignore</button>
+                        </form>
+                    </div>
+                </div>
+                {% elif submission.status == "merged" %}
+                <p class="text-sm">Merged into
+                    {% if submission.household %}<a class="link" href="{% url 'manage:guest_list' %}?q={{ submission.household.invite_code|urlencode }}">{{ submission.household.name }}</a>{% else %}a household since deleted{% endif %}.
+                </p>
+                {% else %}
+                <form method="post" action="{% url 'manage:submission_status' submission.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="new" />
+                    <button type="submit" class="btn btn-sm btn-ghost">Move back to new</button>
+                </form>
+                {% endif %}
+            </div>
+        </li>
+        {% endwith %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mt-6 text-sm opacity-70">Nothing here.</p>
+    {% endif %}
+</div>
+{% endblock content %}

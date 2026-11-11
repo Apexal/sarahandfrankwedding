@@ -1,0 +1,9 @@
+{% comment %}A rendered email: subject line, then the HTML in a sandboxed frame so its styles stay inside it.{% endcomment %}
+<div id="email-preview" class="space-y-2">
+    {% if preview.error %}
+    <div role="alert" class="alert alert-error text-sm"><span>{{ preview.error }}</span></div>
+    {% else %}
+    <p class="text-sm"><span class="opacity-70">Subject:</span> <strong>{{ preview.subject }}</strong></p>
+    <iframe title="Email preview" sandbox srcdoc="{{ preview.html|force_escape }}" class="h-[40rem] w-full rounded-box border border-base-300 bg-white"></iframe>
+    {% endif %}
+</div>

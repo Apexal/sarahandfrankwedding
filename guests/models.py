@@ -152,6 +152,11 @@ class Household(TimestampedModel):
             "Imported addresses are unconfirmed until then."
         ),
     )
+    save_the_date_texted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When we texted them the save-the-date link from our phones. Set on /manage/save-the-date/.",
+    )
 
     invited_events = models.ManyToManyField(
         Event,
@@ -546,6 +551,12 @@ class Campaign(TimestampedModel):
         blank=True,
         related_name="campaigns",
         help_text='Used only by the "selected households" audience.',
+    )
+    message = CKEditor5Field(
+        "message",
+        config_name="default",
+        blank=True,
+        help_text="The body of an announcement. Other templates carry their own text and ignore this.",
     )
     daily_cap = models.PositiveSmallIntegerField(
         default=25,

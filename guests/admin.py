@@ -27,9 +27,9 @@ from guests.models import (
     RsvpAnswer,
     RsvpQuestion,
     Table,
-    split_names,
 )
 from guests.resources import GuestResource, HouseholdResource
+from guests.submissions import SubmissionError, create_household
 from messaging.template_definitions import get_allowed_template_keys
 from pages.models import WeddingSettings
 
@@ -452,18 +452,11 @@ class ContactSubmissionAdmin(admin.ModelAdmin):
     def create_household_from_submission(self, request, queryset):
         created = 0
         for submission in queryset.filter(status=ContactSubmission.Status.NEW):
-            name = submission.names.strip()
-            if Household.objects.filter(name=name).exists():
-                self.message_user(
-                    request,
-                    f'A household named "{name}" already exists; link it and use "Merge into linked household".',
-                    level=messages.WARNING,
-                )
+            try:
+                create_household(submission)
+            except SubmissionError as exc:
+                self.message_user(request, str(exc), level=messages.WARNING)
                 continue
-            household = Household.objects.create(name=name)
-            for order, (first, last) in enumerate(split_names(name)):
-                Guest.objects.create(household=household, first_name=first, last_name=last, sort_order=order)
-            submission.merge_into(household)
             created += 1
         self.message_user(request, f"Created {created} household(s).")
 
@@ -494,7 +487,7 @@ class ContactSubmissionAdmin(admin.ModelAdmin):
 class CampaignAdminForm(forms.ModelForm):
     class Meta:
         model = Campaign
-        fields = ("name", "template_key", "daily_cap", "audience", "event", "households")
+        fields = ("name", "template_key", "message", "daily_cap", "audience", "event", "households")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -533,7 +526,7 @@ class CampaignAdmin(admin.ModelAdmin):
         (
             None,
             {
-                "fields": ("name", "template_key", "daily_cap"),
+                "fields": ("name", "template_key", "message", "daily_cap"),
                 "description": (
                     "How sending works: pick a template and an audience, save, then tick the campaign in the "
                     "list and run “Send selected campaigns”. The first batch of up to the daily cap is handed "

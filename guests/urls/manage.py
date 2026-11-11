@@ -1,6 +1,6 @@
 from django.urls import path
 
-from guests.views import guest_list, manage, seating
+from guests.views import campaigns, guest_list, manage, outreach, seating
 
 app_name = "manage"
 urlpatterns = [
@@ -19,6 +19,27 @@ urlpatterns = [
     path("guests/guest/<int:pk>/edit/", guest_list.guest_edit, name="guest_edit"),
     path("guests/guest/<int:pk>/delete/", guest_list.guest_delete, name="guest_delete"),
     path("guests/guest/<int:pk>/move/", guest_list.guest_move, name="guest_move"),
+    path("save-the-date/", outreach.save_the_date, name="save_the_date"),
+    path("save-the-date/switch/", outreach.save_the_date_switch, name="save_the_date_switch"),
+    path("save-the-date/household/<int:pk>/texted/", outreach.household_texted, name="household_texted"),
+    path("save-the-date/submissions/", outreach.submissions, name="submissions"),
+    path("save-the-date/submissions/<int:pk>/merge/", outreach.submission_merge, name="submission_merge"),
+    path("save-the-date/submissions/<int:pk>/create/", outreach.submission_create, name="submission_create"),
+    path("save-the-date/submissions/<int:pk>/status/", outreach.submission_status, name="submission_status"),
+    path("campaigns/", campaigns.campaigns, name="campaigns"),
+    path("campaigns/new/", campaigns.campaign_new, name="campaign_new"),
+    path("campaigns/<int:pk>/", campaigns.campaign_detail, name="campaign_detail"),
+    path("campaigns/<int:pk>/edit/", campaigns.campaign_edit, name="campaign_edit"),
+    path("campaigns/<int:pk>/delete/", campaigns.campaign_delete, name="campaign_delete"),
+    path("campaigns/<int:pk>/send/", campaigns.campaign_send, name="campaign_send"),
+    path("campaigns/<int:pk>/next-batch/", campaigns.campaign_next_batch, name="campaign_next_batch"),
+    path("campaigns/<int:pk>/retry/", campaigns.campaign_retry, name="campaign_retry"),
+    path("campaigns/<int:pk>/cap/", campaigns.campaign_cap, name="campaign_cap"),
+    path("campaigns/<int:pk>/test/", campaigns.campaign_test, name="campaign_test"),
+    path("emails/", campaigns.email_templates, name="email_templates"),
+    path("emails/<slug:key>/", campaigns.email_template, name="email_template"),
+    path("emails/<slug:key>/preview/", campaigns.email_template_preview, name="email_template_preview"),
+    path("emails/<slug:key>/test/", campaigns.email_template_test, name="email_template_test"),
     path("seating/", seating.seating, name="seating"),
     path("seating/print/", seating.seating_print, name="seating_print"),
     path("seating/assign/", seating.seat_assign, name="seat_assign"),

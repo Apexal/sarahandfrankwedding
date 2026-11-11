@@ -6,9 +6,10 @@ from django.contrib import admin, messages
 from django.http import JsonResponse
 from django.template import Context, Template, TemplateSyntaxError
 from django.urls import path, reverse
-from django.utils.html import format_html, format_html_join, strip_tags
+from django.utils.html import format_html, format_html_join
 
 from messaging.models import EmailTemplateVersion, OutboundEmail
+from messaging.services import html_to_text, render_subject
 from messaging.tasks import send_outbound_email_task
 from messaging.template_definitions import (
     get_context_default_values,
@@ -128,13 +129,16 @@ class EmailTemplateVersionAdmin(admin.ModelAdmin):
         html = self._render_template(payload.get("html_body_template", ""), preview_context)
         definition = get_template_definition(template_key)
         subject_template = payload.get("subject_template", "")
-        subject = self._render_template(subject_template, preview_context).strip()
+        try:
+            subject = render_subject(subject_template, preview_context)
+        except TemplateSyntaxError as exc:
+            subject = f"[TemplateSyntaxError] {exc}"
         if not subject:
             subject = definition.name if definition else template_key
         result = {
             "subject": subject,
             "html": html,
-            "text": strip_tags(html) if html else "",
+            "text": html_to_text(html),
         }
         return JsonResponse(result)
 

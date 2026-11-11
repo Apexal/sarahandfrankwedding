@@ -1,0 +1,174 @@
+{% extends "pages/base_public.html" %}
+{% comment %}
+One campaign. View: guests/views/campaigns.py. A draft shows its audience, a preview for any household in it,
+a test send and the Send form; once sending, the recipients and how far each email has got.
+{% endcomment %}
+{% block head_title %}{{ campaign.name }} · {{ wedding.couple_names }}{% endblock head_title %}
+{% block content %}
+<div class="mx-auto w-full max-w-7xl px-4 py-8 font-sans text-base sm:px-6">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <p class="mt-6 text-sm"><a href="{% url 'manage:campaigns' %}" class="link">← Campaigns</a></p>
+    <div class="mt-1 flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h1 class="font-display text-3xl sm:text-4xl">{{ campaign.name }}</h1>
+            <p class="mt-1 text-sm opacity-80">
+                <span class="badge badge-sm {% if campaign.status == 'sent' %}badge-success{% elif campaign.status == 'sending' %}badge-info{% else %}badge-ghost{% endif %}">{{ campaign.get_status_display }}</span>
+                {{ template_label }} · {{ campaign.get_audience_display }}{% if campaign.event %} ({{ campaign.event.name }}){% endif %} · {{ campaign.daily_cap }} per day
+                {% if campaign.sent_at %} · finished {{ campaign.sent_at|date:"M j, g:i a" }}{% endif %}
+            </p>
+        </div>
+        {% if is_draft %}
+        <div class="flex gap-2">
+            <a href="{% url 'manage:campaign_edit' campaign.pk %}" class="btn btn-sm btn-outline">Edit</a>
+            <form method="post" action="{% url 'manage:campaign_delete' campaign.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-ghost text-error">Delete draft</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div class="space-y-8">
+            {% if is_draft %}
+            <section class="card border border-primary/40 bg-base-200" aria-labelledby="send-heading">
+                <div class="card-body gap-3 p-5">
+                    <h2 id="send-heading" class="font-display text-2xl">Send</h2>
+                    {% if audience_size %}
+                    <p class="text-sm">Goes to <strong>{{ audience_size }}</strong> household{{ audience_size|pluralize }}: the first {{ campaign.daily_cap }} as soon as you press Send{% if days > 1 %}, then one batch each morning ({{ days }} days in all) unless you send the next batch sooner{% endif %}.</p>
+                    <form method="post" action="{% url 'manage:campaign_send' campaign.pk %}" class="space-y-3">
+                        {% csrf_token %}
+                        <label class="flex cursor-pointer items-start gap-2 text-sm">
+                            <input type="checkbox" name="confirm" value="1" class="checkbox checkbox-sm" required />
+                            <span>I've checked the preview and a test. Email {{ audience_size }} household{{ audience_size|pluralize }}.</span>
+                        </label>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                    {% else %}
+                    <p class="text-sm">Nobody is in this audience right now, so there is nothing to send.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section aria-labelledby="audience-heading">
+                <h2 id="audience-heading" class="font-display text-2xl">Who gets it ({{ audience_size }})</h2>
+                {% if skipped %}
+                <div role="note" class="alert alert-warning mt-3 text-sm">
+                    <span>{{ skipped|length }} selected household{{ skipped|length|pluralize }} won't get it (no email, opted out, or bounced): {% for household in skipped %}{{ household.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</span>
+                </div>
+                {% endif %}
+                {% if audience %}
+                <ul class="mt-3 max-h-96 divide-y divide-base-300 overflow-y-auto rounded-box border border-base-300 text-sm">
+                    {% for household in audience %}
+                    <li class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5">
+                        <span>{{ household.name }} <span class="opacity-60">{{ household.email }}</span></span>
+                        <a class="link text-xs" href="?household={{ household.pk }}#preview-heading">Preview</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% if audience_truncated %}<p class="mt-1 text-xs opacity-70">Showing the first {{ audience|length }}.</p>{% endif %}
+                {% endif %}
+            </section>
+            {% else %}
+            <section aria-labelledby="progress-heading" class="space-y-3">
+                <h2 id="progress-heading" class="font-display text-2xl">Progress</h2>
+                <div class="stats stats-vertical w-full bg-base-200 sm:stats-horizontal">
+                    <div class="stat py-3">
+                        <div class="stat-title">Delivered</div>
+                        <div class="stat-value text-2xl tabular-nums text-success">{{ counts.delivered }}</div>
+                        <div class="stat-desc">{{ counts.in_flight }} on the way</div>
+                    </div>
+                    <div class="stat py-3">
+                        <div class="stat-title">Waiting</div>
+                        <div class="stat-value text-2xl tabular-nums">{{ counts.queued }}</div>
+                        <div class="stat-desc">{% if counts.queued %}about {{ days_left }} more day{{ days_left|pluralize }}{% else %}none{% endif %}</div>
+                    </div>
+                    <div class="stat py-3">
+                        <div class="stat-title">Failed</div>
+                        <div class="stat-value text-2xl tabular-nums {% if has_failures %}text-error{% endif %}">{{ counts.failed|add:counts.delivery_failed }}</div>
+                        <div class="stat-desc">{{ counts.skipped }} skipped</div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-end gap-2">
+                    {% if campaign.status == "sending" %}
+                    <form method="post" action="{% url 'manage:campaign_next_batch' campaign.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-primary">Send next batch now</button>
+                    </form>
+                    {% endif %}
+                    {% if has_failures %}
+                    <form method="post" action="{% url 'manage:campaign_retry' campaign.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline">Retry failed</button>
+                    </form>
+                    {% endif %}
+                    {% if campaign.status == "sending" %}
+                    <form method="post" action="{% url 'manage:campaign_cap' campaign.pk %}" class="flex items-end gap-2">
+                        {% csrf_token %}
+                        <label>
+                            <span class="mb-1 block text-xs">Emails per day</span>
+                            <input type="number" name="daily_cap" min="1" value="{{ campaign.daily_cap }}" class="input input-sm w-24" />
+                        </label>
+                        <button type="submit" class="btn btn-sm btn-ghost">Change</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section aria-labelledby="recipients-heading">
+                <h2 id="recipients-heading" class="font-display text-2xl">Recipients ({{ recipients|length }})</h2>
+                <div class="mt-3 max-h-[32rem] overflow-auto">
+                    <table class="table table-sm">
+                        <thead><tr><th>Household</th><th>Status</th><th><span class="sr-only">Preview</span></th></tr></thead>
+                        <tbody>
+                            {% for recipient in recipients %}
+                            <tr>
+                                <td>{{ recipient.household.name }}<br><span class="text-xs opacity-60">{{ recipient.outbound_email.to_email|default:recipient.household.email|default:"no email" }}</span></td>
+                                <td>
+                                    {% if recipient.status == "sent" %}
+                                        {% if recipient.outbound_email.status == "sent" %}<span class="badge badge-sm badge-success">Delivered</span>
+                                        {% elif recipient.outbound_email.status == "failed" %}<span class="badge badge-sm badge-error">Failed</span><p class="mt-1 text-xs text-error">{{ recipient.outbound_email.error_message|truncatechars:160 }}</p>
+                                        {% else %}<span class="badge badge-sm badge-info">On the way</span>{% endif %}
+                                    {% elif recipient.status == "queued" %}<span class="badge badge-sm badge-ghost">Waiting</span>
+                                    {% elif recipient.status == "failed" %}<span class="badge badge-sm badge-error">Failed</span><p class="mt-1 text-xs text-error">{{ recipient.error|truncatechars:160 }}</p>
+                                    {% else %}<span class="badge badge-sm badge-outline">Skipped</span><p class="mt-1 text-xs opacity-70">{{ recipient.error }}</p>{% endif %}
+                                </td>
+                                <td><a class="link text-xs" href="?household={{ recipient.household_id }}#preview-heading">Preview</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+
+        <section aria-labelledby="preview-heading" class="space-y-3">
+            <h2 id="preview-heading" class="font-display text-2xl">Preview</h2>
+            {% if not campaign.template_key %}
+            <p class="text-sm opacity-70">Pick an email for this campaign to see it.</p>
+            {% else %}
+            {% if preview_choices %}
+            <form method="get" class="flex flex-wrap items-end gap-2">
+                <label class="w-full sm:w-72">
+                    <span class="mb-1 block text-xs">As sent to</span>
+                    <select name="household" class="select select-sm w-full">
+                        {% for household in preview_choices %}<option value="{{ household.pk }}" {% if household.pk == preview_household.pk %}selected{% endif %}>{{ household.name }}</option>{% endfor %}
+                    </select>
+                </label>
+                <button type="submit" class="btn btn-sm btn-ghost">Show</button>
+            </form>
+            {% endif %}
+            {% include "guests/manage/emails/_preview.html" %}
+            <form method="post" action="{% url 'manage:campaign_test' campaign.pk %}" class="flex flex-wrap items-center gap-2">
+                {% csrf_token %}
+                {% if preview_household %}<input type="hidden" name="household" value="{{ preview_household.pk }}" />{% endif %}
+                <button type="submit" class="btn btn-sm btn-outline">Send this to me ({{ request.user.email }})</button>
+                <a href="{% url 'manage:email_template' campaign.template_key %}" class="btn btn-sm btn-ghost">Edit the email</a>
+            </form>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock content %}

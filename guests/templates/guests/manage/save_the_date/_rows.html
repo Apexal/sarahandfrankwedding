@@ -1,0 +1,10 @@
+{% if rows %}
+<p class="mb-2 text-sm opacity-70">{{ rows|length }} household{{ rows|length|pluralize }}</p>
+<ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    {% for row in rows %}
+    {% include "guests/manage/save_the_date/_row.html" %}
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm opacity-70">No households match.</p>
+{% endif %}
