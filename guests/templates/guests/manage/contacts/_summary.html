@@ -1,0 +1,9 @@
+{% comment %}How much of the sheet is filled in. Re-fetched after every saved cell (`contacts-changed`).{% endcomment %}
+<div id="contacts-summary" class="mt-4 flex flex-wrap gap-2 text-sm"
+     hx-get="{% url 'manage:contacts' %}" hx-trigger="contacts-changed from:body" hx-swap="outerHTML" aria-live="polite">
+    <span class="badge badge-outline">{{ summary.total }} household{{ summary.total|pluralize }} · {{ summary.guests }} guest{{ summary.guests|pluralize }}</span>
+    <span class="badge {% if summary.email == summary.total %}badge-success{% else %}badge-outline{% endif %}">Email {{ summary.email }} / {{ summary.total }}</span>
+    <span class="badge {% if summary.phone == summary.total %}badge-success{% else %}badge-outline{% endif %}">Phone {{ summary.phone }} / {{ summary.total }}</span>
+    <span class="badge {% if summary.address == summary.total %}badge-success{% else %}badge-outline{% endif %}">Address {{ summary.address }} / {{ summary.total }}</span>
+    <span class="badge {% if summary.confirmed == summary.total %}badge-success{% else %}badge-outline{% endif %}">Confirmed {{ summary.confirmed }} / {{ summary.total }}</span>
+</div>

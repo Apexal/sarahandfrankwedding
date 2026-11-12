@@ -1,0 +1,25 @@
+{% comment %}
+One editable cell. The table carries hx-target/hx-swap; an input posts on its default trigger, `change`. A saved
+cell gets a green border; an invalid one keeps what was typed and shows why. `data-col` is what Enter uses
+to find the same column on the next row.
+{% endcomment %}
+{% with household=cell.household %}
+<td>
+    {% if cell.type == "checkbox" %}
+    <label class="flex items-center justify-center pt-1">
+        <span class="sr-only">{{ cell.label }} for {{ household.name }}</span>
+        <input id="c-{{ household.pk }}-{{ cell.field }}" type="checkbox" name="{{ cell.field }}" data-col="{{ cell.field }}"
+               class="checkbox checkbox-sm {% if cell.saved %}checkbox-success{% endif %}"
+               hx-post="{% url 'manage:contact_cell' household.pk cell.field %}" {% if cell.value %}checked{% endif %} />
+    </label>
+    {% else %}
+    <input id="c-{{ household.pk }}-{{ cell.field }}" type="{{ cell.type }}" name="{{ cell.field }}" value="{{ cell.value }}"
+           data-col="{{ cell.field }}" placeholder="{{ cell.label }}" autocomplete="off" spellcheck="false"
+           aria-label="{{ cell.label }} for {{ household.name }}" {% if cell.error %}aria-invalid="true" aria-describedby="c-{{ household.pk }}-{{ cell.field }}-error"{% endif %}
+           class="input input-xs {{ cell.width }} {% if cell.error %}input-error{% elif cell.saved %}input-success{% endif %} {% if cell.wanted %}placeholder-shown:bg-warning/15{% endif %}"
+           hx-post="{% url 'manage:contact_cell' household.pk cell.field %}" />
+    {% if cell.error %}<p id="c-{{ household.pk }}-{{ cell.field }}-error" class="mt-0.5 max-w-60 text-[0.7rem] text-error">{{ cell.error }}</p>{% endif %}
+    {% if cell.bounced %}<p class="mt-0.5 text-[0.7rem] text-error" title="Campaigns skip this household. Changing the email clears it.">Bounced</p>{% endif %}
+    {% endif %}
+</td>
+{% endwith %}

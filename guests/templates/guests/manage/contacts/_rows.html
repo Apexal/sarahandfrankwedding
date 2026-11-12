@@ -1,0 +1,19 @@
+{% comment %}The sheet's body. Swapped whole by the filter form; each cell swaps itself after a save.{% endcomment %}
+<tbody id="contact-rows">
+    {% for row in rows %}
+    <tr id="contact-{{ row.household.pk }}" class="align-top hover:bg-base-200/40">
+        <th class="max-w-56 bg-base-100 font-normal">
+            <a href="{% url 'manage:guest_list' %}?q={{ row.household.invite_code|urlencode }}" class="link link-hover font-medium">{{ row.household.name }}</a>
+            <div class="font-mono text-[0.7rem] tracking-wider opacity-60">{{ row.household.invite_code }}</div>
+        </th>
+        <td class="max-w-56 text-xs opacity-80">{{ row.guests|join:", "|default:"—" }}</td>
+        {% for cell in row.cells %}
+        {% include "guests/manage/contacts/_cell.html" %}
+        {% endfor %}
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="11" class="py-6 text-center text-sm opacity-70">{% if filtered %}Nothing matches.{% else %}No households yet.{% endif %}</td>
+    </tr>
+    {% endfor %}
+</tbody>

@@ -7,6 +7,7 @@ another link (a campaign's detail page under Campaigns) passes `nav` with that l
 <nav aria-label="Staff pages" class="flex flex-wrap items-center gap-1 border-b border-base-300 pb-3">
     <a href="{% url 'manage:dashboard' %}" class="btn btn-sm {% if current == 'dashboard' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
     <a href="{% url 'manage:guest_list' %}" class="btn btn-sm {% if current == 'guest_list' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'guest_list' %}aria-current="page"{% endif %}>Guest list</a>
+    <a href="{% url 'manage:contacts' %}" class="btn btn-sm {% if current == 'contacts' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'contacts' %}aria-current="page"{% endif %}>Contacts</a>
     <a href="{% url 'manage:save_the_date' %}" class="btn btn-sm {% if current == 'save_the_date' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'save_the_date' %}aria-current="page"{% endif %}>Save the date</a>
     <a href="{% url 'manage:campaigns' %}" class="btn btn-sm {% if current == 'campaigns' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'campaigns' %}aria-current="page"{% endif %}>Campaigns</a>
     <a href="{% url 'manage:email_templates' %}" class="btn btn-sm {% if current == 'email_templates' %}btn-neutral{% else %}btn-ghost{% endif %}" {% if current == 'email_templates' %}aria-current="page"{% endif %}>Emails</a>

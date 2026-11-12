@@ -1,6 +1,6 @@
 from django.urls import path
 
-from guests.views import campaigns, guest_list, manage, outreach, seating
+from guests.views import campaigns, contacts, guest_list, manage, outreach, seating
 
 app_name = "manage"
 urlpatterns = [
@@ -19,6 +19,8 @@ urlpatterns = [
     path("guests/guest/<int:pk>/edit/", guest_list.guest_edit, name="guest_edit"),
     path("guests/guest/<int:pk>/delete/", guest_list.guest_delete, name="guest_delete"),
     path("guests/guest/<int:pk>/move/", guest_list.guest_move, name="guest_move"),
+    path("contacts/", contacts.contacts, name="contacts"),
+    path("contacts/<int:pk>/<slug:field>/", contacts.contact_cell, name="contact_cell"),
     path("save-the-date/", outreach.save_the_date, name="save_the_date"),
     path("save-the-date/switch/", outreach.save_the_date_switch, name="save_the_date_switch"),
     path("save-the-date/household/<int:pk>/texted/", outreach.household_texted, name="household_texted"),

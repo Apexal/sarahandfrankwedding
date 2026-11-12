@@ -1,0 +1,68 @@
+{% extends "pages/base_public.html" %}
+{% load static %}
+{% comment %}
+The contact sheet: one row per household, every contact field a cell that saves on change. View:
+guests/views/contacts.py; keyboard movement and the error banner: static/js/contacts.js (no inline JS: CSP).
+{% endcomment %}
+{% block head_title %}Contacts · {{ wedding.couple_names }}{% endblock head_title %}
+{% block extra_head %}
+<script src="{% static 'js/contacts.js' %}" defer></script>
+{% endblock extra_head %}
+{% block content %}
+<div class="mx-auto w-full max-w-[110rem] px-4 py-8 font-sans text-base sm:px-6 [&_::placeholder]:text-base-content/35">
+    {% include "guests/manage/_staff_nav.html" %}
+
+    <h1 class="mt-6 font-display text-3xl sm:text-4xl">Contacts</h1>
+    <p class="mt-1 text-sm opacity-80">
+        Every household on one sheet. Each cell saves as soon as you leave it. <kbd class="kbd kbd-xs">Enter</kbd> moves down a row,
+        <kbd class="kbd kbd-xs">Shift</kbd>+<kbd class="kbd kbd-xs">Enter</kbd> moves up, <kbd class="kbd kbd-xs">Tab</kbd> moves across.
+        Names and invitations are edited on the <a href="{% url 'manage:guest_list' %}" class="link">guest list</a>.
+    </p>
+
+    {% include "guests/manage/contacts/_summary.html" %}
+
+    <form class="mt-4 flex flex-wrap items-center gap-3" role="search" aria-label="Filter households"
+          hx-get="{% url 'manage:contacts' %}" hx-target="#contact-rows" hx-swap="outerHTML"
+          hx-trigger="input delay:300ms, change, submit" hx-push-url="true">
+        <label class="input input-sm w-full sm:w-72">
+            <span class="sr-only">Search</span>
+            <input type="search" name="q" value="{{ q }}" placeholder="Search names or invite code" autocomplete="off" />
+        </label>
+        <div class="join" role="radiogroup" aria-label="Side">
+            <input class="join-item btn btn-sm" type="radio" name="side" value="" aria-label="All sides" {% if not side %}checked{% endif %} />
+            {% for value, label in sides %}
+            <input class="join-item btn btn-sm" type="radio" name="side" value="{{ value }}" aria-label="{{ label }}" {% if side == value %}checked{% endif %} />
+            {% endfor %}
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+            <span>Show</span>
+            <select name="missing" class="select select-sm w-52">
+                {% for value, label in missing_choices %}
+                <option value="{{ value }}" {% if missing == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+    <p class="mt-2 text-xs opacity-70">Rows stay put after you fill them in; change the filter to refresh the list.</p>
+
+    <div class="mt-4 max-h-[calc(100vh-7rem)] overflow-auto rounded-box border border-base-300 bg-base-100">
+        <table class="table table-xs table-pin-rows table-pin-cols" data-contacts hx-target="closest td" hx-swap="outerHTML">
+            <thead>
+                <tr class="bg-base-200">
+                    <th class="bg-base-200">Household</th>
+                    <td>Guests</td>
+                    {% for field, label, width in columns %}
+                    <td>{{ label }}</td>
+                    {% endfor %}
+                </tr>
+            </thead>
+            {% include "guests/manage/contacts/_rows.html" %}
+        </table>
+    </div>
+
+    <div id="contacts-error" role="alert" class="alert alert-error fixed right-4 bottom-4 left-4 z-50 hidden sm:left-auto sm:max-w-md">
+        <span>A cell didn't save. Reload to see what's stored.</span>
+        <button type="button" class="btn btn-sm" data-contacts-reload>Reload</button>
+    </div>
+</div>
+{% endblock content %}

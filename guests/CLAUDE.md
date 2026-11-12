@@ -28,6 +28,11 @@ and the guest list editor.
   `rsvps_lost_by_uninvite()` first and show a confirm. Empty households are kept. Deletes with something to
   lose (`household_stakes()` / `guest_stakes()`) need the name typed. Confirmations render into the page's
   `<dialog>` via `HX-Retarget`, never a browser dialog; JS is `static/js/guest-list.js` (CSP: no inline).
+- **The contact sheet** (`/manage/contacts/`, `guests/views/contacts.py`) is one row per household with
+  the contact fields as cells (`COLUMNS`); each cell posts only its own field on `change` and the `<td>`
+  comes back re-rendered (phone normalized, or the error with what was typed). The "Confirmed" cell sets
+  `address_confirmed_at`. Changing a bounced household's email clears `email_bounced_at`. JS is
+  `static/js/contacts.js` (Enter / Shift+Enter move down / up a row).
 - **Save-the-date outreach** (`/manage/save-the-date/`, `guests/views/outreach.py`): texting is by hand
   from our phones (an `sms:` link with `save_the_date_message()` filled in), recorded on
   `Household.save_the_date_texted_at`; "emailed" means a `sent` `CampaignRecipient` on a `save_the_date` or
